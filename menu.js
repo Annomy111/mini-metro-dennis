@@ -389,6 +389,163 @@ class MenuSystem {
             this.currentScreen = 'daily-leaderboard';
         }
     }
+
+    renderCityMap() {
+        const mapContainer = document.getElementById('world-map');
+        mapContainer.innerHTML = '';
+
+        Object.entries(this.cities).forEach(([key, city], index) => {
+            const marker = document.createElement('div');
+            marker.className = 'city-marker' + (city.unlocked ? '' : ' locked');
+            marker.style.left = (city.position.x * 100) + '%';
+            marker.style.top = (city.position.y * 100) + '%';
+            marker.style.background = city.unlocked ? city.color : '#999';
+            marker.style.animationDelay = `${index * 0.05}s`;
+            marker.textContent = city.name.substring(0, 1);
+
+            const infoCard = document.createElement('div');
+            infoCard.className = 'city-info-card';
+
+            infoCard.innerHTML = `<h3>${city.name}</h3>`;
+
+            if (city.unlocked) {
+                let featuresHTML = city.features.map(f => `<li>${f}</li>`).join('');
+                infoCard.innerHTML += `
+                    <p>Highscore: ${city.highscores.normal}</p>
+                    <ul>${featuresHTML}</ul>
+                `;
+                marker.onclick = () => this.selectCity(key);
+            } else {
+                const achievement = this.achievements[city.requiredAchievement];
+                infoCard.innerHTML += `<p>Locked</p>`;
+                if (achievement) {
+                    infoCard.innerHTML += `<p>Unlock by: ${achievement.description}</p>`;
+                }
+            }
+
+            marker.appendChild(infoCard);
+
+            mapContainer.appendChild(marker);
+        });
+    }
+
+    renderModeSelection() {
+        const modeContainer = document.getElementById('mode-selection');
+        modeContainer.innerHTML = '';
+
+        Object.entries(this.gameModes).forEach(([key, mode]) => {
+            const card = document.createElement('div');
+            card.className = 'mode-card' + (mode.unlocked ? '' : ' locked');
+
+            card.innerHTML = `
+                <div class="mode-icon">${mode.icon}</div>
+                <div class="mode-name">${mode.name}</div>
+                <div class="mode-description">${mode.description}</div>
+            `;
+
+            if (mode.unlocked) {
+                card.onclick = () => this.selectMode(key);
+            }
+
+            modeContainer.appendChild(card);
+        });
+    }
+
+    selectCity(cityKey) {
+        this.selectedCity = cityKey;
+        document.querySelectorAll('.city-marker').forEach(m => m.classList.remove('selected'));
+        event.target.classList.add('selected');
+
+        this.updateStartButton();
+    }
+
+    selectMode(modeKey) {
+        this.selectedMode = modeKey;
+        document.querySelectorAll('.mode-card').forEach(m => m.classList.remove('selected'));
+        event.target.closest('.mode-card').classList.add('selected');
+
+        this.updateStartButton();
+    }
+
+    updateStartButton() {
+        const btn = document.getElementById('start-game-btn');
+        if (this.selectedCity && this.selectedMode) {
+            btn.style.display = 'inline-block';
+            btn.textContent = `Start ${this.cities[this.selectedCity].name} - ${this.gameModes[this.selectedMode].name}`;
+        }
+    }
+
+    startSelectedGame() {
+        if (this.selectedCity && this.selectedMode) {
+            this.startGame(this.selectedCity, this.selectedMode);
+        }
+    }
+
+    renderAchievements() {
+        const grid = document.getElementById('achievements-grid');
+        grid.innerHTML = '';
+
+        Object.entries(this.achievements).forEach(([key, achievement]) => {
+            const card = document.createElement('div');
+            card.className = 'achievement-card' + (achievement.unlocked ? ' unlocked' : '');
+
+            const progressPercent = (achievement.progress / achievement.target) * 100;
+
+            card.innerHTML = `
+                <div class="achievement-card-icon">${achievement.icon}</div>
+                <div class="achievement-info">
+                    <div class="achievement-card-name">${achievement.name}</div>
+                    <div class="achievement-card-description">${achievement.description}</div>
+                    <div class="achievement-progress">
+                        <div class="achievement-progress-bar" style="width: ${progressPercent}%"></div>
+                    </div>
+                </div>
+            `;
+
+            grid.appendChild(card);
+        });
+    }
+
+    updateStatistics() {
+        let totalPassengers = 0;
+        let citiesCompleted = 0;
+        let bestScore = 0;
+
+        Object.values(this.cities).forEach(city => {
+            Object.values(city.highscores).forEach(score => {
+                totalPassengers += score;
+                if (score > bestScore) bestScore = score;
+                if (score > 500) citiesCompleted++;
+            });
+        });
+
+        document.getElementById('total-passengers').textContent = totalPassengers;
+        document.getElementById('cities-completed').textContent = citiesCompleted;
+        document.getElementById('best-score').textContent = bestScore;
+
+        // Mock leaderboard
+        const leaderboard = [
+            { rank: 1, name: 'Player 1', score: 2847 },
+            { rank: 2, name: 'Player 2', score: 2341 },
+            { rank: 3, name: 'Player 3', score: 1923 },
+            { rank: 4, name: 'You', score: bestScore },
+            { rank: 5, name: 'Player 5', score: 1102 }
+        ];
+
+        const leaderboardContainer = document.getElementById('leaderboard-entries');
+        leaderboardContainer.innerHTML = '';
+
+        leaderboard.sort((a, b) => b.score - a.score).forEach((entry, index) => {
+            const div = document.createElement('div');
+            div.className = 'leaderboard-entry';
+            div.innerHTML = `
+                <span class="leaderboard-rank">#${index + 1}</span>
+                <span class="leaderboard-name">${entry.name}</span>
+                <span class="leaderboard-score">${entry.score}</span>
+            `;
+            leaderboardContainer.appendChild(div);
+        });
+    }
 }
 
 /**
