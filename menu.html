@@ -6,6 +6,22 @@
     <title>Mini Metro</title>
     <link rel="stylesheet" href="menu.css">
     <style>
+        :root {
+            --background-color: #F4F4F4;
+            --text-color: #0A0404;
+            --primary-color: #80C3FF;
+            --secondary-color: #DD2515;
+            --ui-background: rgba(255, 255, 255, 0.95);
+            --border-color: #D4D4D4;
+        }
+
+        body.night-mode {
+            --background-color: #242021;
+            --text-color: #F2F2F2;
+            --ui-background: rgba(53, 49, 54, 0.95);
+            --border-color: #747474;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -15,12 +31,53 @@
         body {
             font-family: 'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             overflow: hidden;
-            background: #F4F4F4;
-            transition: background-color 0.3s ease;
+            background: var(--background-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         
-        body.night-mode {
-            background: #242021;
+        #main-menu {
+            width: 250px;
+            height: 100vh;
+            background: var(--ui-background);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 40px;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            text-align: left;
+            font-size: 18px;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .menu-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .screen {
+            flex-grow: 1;
+            height: 100vh;
+            overflow-y: auto;
         }
         
         #gameCanvas {
@@ -51,17 +108,12 @@
             pointer-events: auto;
             display: inline-block;
             padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--ui-background);
             border-radius: 4px;
             font-size: 18px;
             font-weight: 500;
-            color: #0A0404;
+            color: var(--text-color);
             transition: all 0.3s ease;
-        }
-        
-        body.night-mode .ui-element {
-            background: rgba(53, 49, 54, 0.95);
-            color: #F2F2F2;
         }
         
         #score {
@@ -87,9 +139,9 @@
         .control-btn {
             pointer-events: auto;
             padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.95);
-            color: #333333;
-            border: 2px solid #D4D4D4;
+            background: var(--ui-background);
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             font-size: 20px;
             font-weight: 600;
@@ -101,16 +153,10 @@
             justify-content: center;
         }
         
-        body.night-mode .control-btn {
-            background: rgba(53, 49, 54, 0.95);
-            color: #F2F2F2;
-            border-color: #747474;
-        }
-        
         .control-btn:hover {
-            background: #80C3FF;
+            background: var(--primary-color);
             color: white;
-            border-color: #80C3FF;
+            border-color: var(--primary-color);
             transform: translateY(-2px);
         }
         
@@ -134,11 +180,7 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            color: #333;
-        }
-
-        body.night-mode .how-to-play-container {
-            color: #F2F2F2;
+            color: var(--text-color);
         }
 
         .how-to-play-container h1 {
@@ -185,7 +227,7 @@
             top: 50%;
             transform: translateY(-50%);
             padding: 10px;
-            background: white;
+            background: var(--ui-background);
             border-radius: 4px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             display: none;
@@ -193,6 +235,7 @@
             gap: 5px;
             z-index: 20;
             white-space: nowrap;
+            border: 1px solid var(--border-color);
         }
 
         .city-marker:hover .city-info-card {
@@ -208,72 +251,133 @@
             margin: 0;
             font-size: 12px;
         }
+
+        #resources span {
+            margin: 0 10px;
+        }
+
+        #line-occupancy {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .line-occupancy-bar {
+            width: 100px;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .line-occupancy-fill {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.2s ease;
+        }
+
+        .modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: var(--ui-background);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .upgrade-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .upgrade-options {
+            display: flex;
+            gap: 20px;
+        }
+
+        #final-score {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        #game-over-stats {
+            margin-bottom: 30px;
+        }
+
+        .game-over-buttons {
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
     <!-- Main Menu Screen -->
-    <div id="main-menu" class="screen active">
-        <div class="game-logo">MINI METRO</div>
-        <div class="menu-buttons">
-            <button class="menu-btn" onclick="showCitySelect()">Play</button>
-            <button class="menu-btn" onclick="showDailyChallenge()">Daily Challenge</button>
-            <button class="menu-btn" onclick="showAchievements()">Achievements</button>
-            <button class="menu-btn" onclick="showStatistics()">Statistics</button>
-            <button class="menu-btn" onclick="showHowToPlay()">How to Play</button>
-            <button class="menu-btn" onclick="showSettings()">Settings</button>
+    <div id="main-menu-container">
+        <div id="main-menu">
+            <div class="game-logo">MINI METRO</div>
+            <div class="menu-buttons">
+                <button class="menu-btn" onclick="showCitySelect()">Play</button>
+                <button class="menu-btn" onclick="showDailyChallenge()">Daily Challenge</button>
+                <button class="menu-btn" onclick="showAchievements()">Achievements</button>
+                <button class="menu-btn" onclick="showStatistics()">Statistics</button>
+                <button class="menu-btn" onclick="showHowToPlay()">How to Play</button>
+                <button class="menu-btn" onclick="showSettings()">Settings</button>
+            </div>
         </div>
-    </div>
-    
-    <!-- How to Play Screen -->
-    <div id="how-to-play" class="screen">
-        <button class="back-btn" onclick="showMainMenu()">← Back</button>
-        <div class="how-to-play-container">
-            <h1>How to Play</h1>
-            <p><strong>Goal:</strong> Transport as many passengers as possible before stations get too overcrowded.</p>
+        <div id="main-content" class="screen-container">
+            <div id="how-to-play" class="screen">
+                <button class="back-btn" onclick="showMainMenu()">← Back</button>
+                <div class="how-to-play-container">
+                    <h1>How to Play</h1>
+                    <p><strong>Goal:</strong> Transport as many passengers as possible before stations get too overcrowded.</p>
 
-            <h2>Controls</h2>
-            <ul>
-                <li><strong>Draw Lines:</strong> Click and drag from one station to another to create a new line or extend an existing one.</li>
-                <li><strong>Delete Lines:</strong> Right-click on a line segment to delete the entire line.</li>
-                <li><strong>Mobile:</strong> Use tap and drag to draw, and double-tap to delete.</li>
-            </ul>
+                    <h2>Controls</h2>
+                    <ul>
+                        <li><strong>Draw Lines:</strong> Click and drag from one station to another to create a new line or extend an existing one.</li>
+                        <li><strong>Delete Lines:</strong> Right-click on a line segment to delete the entire line.</li>
+                        <li><strong>Mobile:</strong> Use tap and drag to draw, and double-tap to delete.</li>
+                    </ul>
 
-            <h2>Stations</h2>
-            <p>Stations appear in different shapes. Passengers will want to travel to a station of a specific shape.</p>
+                    <h2>Stations</h2>
+                    <p>Stations appear in different shapes. Passengers will want to travel to a station of a specific shape.</p>
 
-            <h2>Trains</h2>
-            <p>Trains will automatically run on your lines. You'll get more trains and other upgrades at the end of each week.</p>
+                    <h2>Trains</h2>
+                    <p>Trains will automatically run on your lines. You'll get more trains and other upgrades at the end of each week.</p>
 
-            <h2>Game Over</h2>
-            <p>If a station has too many waiting passengers for too long, it will become overcrowded and the game will end.</p>
-        </div>
-    </div>
-
-    <!-- City Selection Screen -->
-    <div id="city-select" class="screen">
-        <button class="back-btn" onclick="showMainMenu()">← Back</button>
-        <div class="city-select-header">
-            <h1 class="city-select-title">Select a City</h1>
-        </div>
-        <div class="world-map" id="world-map"></div>
-        <div class="mode-selection" id="mode-selection"></div>
-        <div style="text-align: center; margin-top: 20px;">
-            <button class="menu-btn" id="start-game-btn" onclick="startSelectedGame()" style="display: none;">Start Game</button>
-        </div>
-    </div>
-    
-    <!-- Achievements Screen -->
-    <div id="achievements" class="screen">
-        <button class="back-btn" onclick="showMainMenu()">← Back</button>
-        <div class="achievements-grid" id="achievements-grid"></div>
-    </div>
-    
-    <!-- Statistics Screen -->
-    <div id="statistics" class="screen">
-        <button class="back-btn" onclick="showMainMenu()">← Back</button>
-        <div class="stats-container">
-            <h1 class="stats-title">Statistics</h1>
-            <div class="stat-card">
+                    <h2>Game Over</h2>
+                    <p>If a station has too many waiting passengers for too long, it will become overcrowded and the game will end.</p>
+                </div>
+            </div>
+            <div id="city-select" class="screen">
+                <button class="back-btn" onclick="showMainMenu()">← Back</button>
+                <div class="city-select-header">
+                    <h1 class="city-select-title">Select a City</h1>
+                </div>
+                <div class="world-map" id="world-map"></div>
+            </div>
+            <div id="achievements" class="screen">
+                <button class="back-btn" onclick="showMainMenu()">← Back</button>
+                <div class="achievements-grid" id="achievements-grid"></div>
+            </div>
+            <div id="statistics" class="screen">
+                <button class="back-btn" onclick="showMainMenu()">← Back</button>
+                <div class="stats-container">
+                    <h1 class="stats-title">Statistics</h1>
+                    <div class="stat-card">
                 <div class="stat-label">Total Passengers Transported</div>
                 <div class="stat-value" id="total-passengers">0</div>
             </div>
@@ -298,12 +402,21 @@
             <span id="score-value">0</span>
             <span style="font-size: 14px; opacity: 0.7;">Passagiere</span>
         </div>
+        <div id="resources" class="ui-element">
+            <span>🚂 <span id="train-count">3</span></span>
+            <span>🚄 <span id="high-speed-train-count">0</span></span>
+            <span>🌉 <span id="bridge-count">3</span></span>
+            <span>↔️ <span id="line-count">3</span></span>
+        </div>
         <div id="week-progress" class="ui-element">
             <div style="font-size: 14px; opacity: 0.7;">Woche <span id="week-value">1</span></div>
             <div id="day-display" style="font-size: 20px; font-weight: 600;">
                 <span id="day-name">Montag</span>
                 <span id="clock-time" style="margin-left: 10px;">06:00</span>
             </div>
+        </div>
+        <div id="line-occupancy" class="ui-element">
+            <!-- Line occupancy indicators will be added here -->
         </div>
     </div>
     
@@ -331,17 +444,24 @@
     </div>
     
     <!-- Upgrade Modal -->
-    <div id="upgrade-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 100;">
-        <div class="upgrade-title" style="font-size: 24px; margin-bottom: 20px; text-align: center;">Wähle ein Upgrade</div>
-        <div class="upgrade-options" id="upgrade-options" style="display: flex; gap: 20px;"></div>
+    <div id="upgrade-modal" class="modal-container" style="display: none;">
+        <div class="modal-content">
+            <div class="upgrade-title">Wähle ein Upgrade</div>
+            <div class="upgrade-options" id="upgrade-options"></div>
+        </div>
     </div>
     
     <!-- Game Over Screen -->
-    <div id="game-over" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 200; text-align: center;">
-        <h2 style="font-size: 32px; margin-bottom: 20px;">Spiel beendet!</h2>
-        <div id="final-score" style="font-size: 48px; font-weight: bold; margin-bottom: 30px; color: #2581C4;">0</div>
-        <button class="control-btn" onclick="game.restart()" style="margin-right: 10px;">Nochmal spielen</button>
-        <button class="control-btn" onclick="showMainMenu()">Hauptmenü</button>
+    <div id="game-over" class="modal-container" style="display: none;">
+        <div class="modal-content">
+            <h2>Spiel beendet!</h2>
+            <div id="final-score">0</div>
+            <div id="game-over-stats"></div>
+            <div class="game-over-buttons">
+                <button class="control-btn" onclick="game.restart()">Nochmal spielen</button>
+                <button class="control-btn" onclick="showMainMenu()">Hauptmenü</button>
+            </div>
+        </div>
     </div>
     
     <script src="city-maps.js"></script>
@@ -353,8 +473,8 @@
 
         function showMainMenu() {
             menuSystem.showMainMenu();
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById('main-menu').classList.add('active');
+            document.body.style.display = 'flex';
+            document.getElementById('main-menu-container').style.display = 'flex';
             document.getElementById('gameCanvas').classList.remove('active');
             document.getElementById('ui-overlay').classList.remove('active');
             document.getElementById('controls').classList.remove('active');
@@ -365,7 +485,7 @@
 
         function showCitySelect() {
             menuSystem.showCitySelect();
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('#main-content .screen').forEach(s => s.classList.remove('active'));
             document.getElementById('city-select').classList.add('active');
             menuSystem.renderCityMap();
             menuSystem.renderModeSelection();
@@ -373,20 +493,20 @@
 
         function showAchievements() {
             menuSystem.showAchievements();
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('#main-content .screen').forEach(s => s.classList.remove('active'));
             document.getElementById('achievements').classList.add('active');
             menuSystem.renderAchievements();
         }
 
         function showStatistics() {
             menuSystem.showStatistics();
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('#main-content .screen').forEach(s => s.classList.remove('active'));
             document.getElementById('statistics').classList.add('active');
             menuSystem.updateStatistics();
         }
 
         function showHowToPlay() {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('#main-content .screen').forEach(s => s.classList.remove('active'));
             document.getElementById('how-to-play').classList.add('active');
         }
 
@@ -403,7 +523,7 @@
         }
         
         function startGame(city, mode) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('main-menu-container').style.display = 'none';
             document.getElementById('gameCanvas').classList.add('active');
             document.getElementById('ui-overlay').classList.add('active');
             document.getElementById('controls').classList.add('active');

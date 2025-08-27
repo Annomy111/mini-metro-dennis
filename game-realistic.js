@@ -1597,6 +1597,32 @@ class MiniMetro {
         
         const weekEl = document.getElementById('week-value');
         if (weekEl) weekEl.textContent = this.week;
+
+        document.getElementById('train-count').textContent = this.availableTrains;
+        document.getElementById('high-speed-train-count').textContent = this.availableHighSpeedTrains;
+        document.getElementById('bridge-count').textContent = this.availableBridges;
+        document.getElementById('line-count').textContent = this.availableLines;
+
+        const lineOccupancyContainer = document.getElementById('line-occupancy');
+        lineOccupancyContainer.innerHTML = '';
+        for (const line of this.lines) {
+            if (line.stations.length > 0) {
+                const totalPassengers = line.trains.reduce((sum, train) => sum + train.passengers.length, 0);
+                const totalCapacity = line.trains.reduce((sum, train) => sum + train.capacity, 0);
+                const occupancy = totalCapacity > 0 ? totalPassengers / totalCapacity : 0;
+
+                const bar = document.createElement('div');
+                bar.className = 'line-occupancy-bar';
+                bar.style.background = line.color;
+
+                const fill = document.createElement('div');
+                fill.className = 'line-occupancy-fill';
+                fill.style.width = `${occupancy * 100}%`;
+
+                bar.appendChild(fill);
+                lineOccupancyContainer.appendChild(bar);
+            }
+        }
     }
     
     /**
@@ -1688,14 +1714,15 @@ class MiniMetro {
             const finalScoreEl = document.getElementById('final-score');
             if (finalScoreEl) finalScoreEl.textContent = this.score;
 
-            const statsEl = document.createElement('div');
-            statsEl.innerHTML = `
-                <h3>Statistiken</h3>
-                <p>Längste Linie: ${this.longestLine} Stationen</p>
-                <p>Meistbesuchte Station: ${this.busiestStation ? this.busiestStation.shape : 'N/A'}</p>
-                <p>Gesamtdistanz der Züge: ${Math.round(this.totalDistanceTraveledByTrains)} km</p>
-            `;
-            gameOverEl.appendChild(statsEl);
+            const statsEl = document.getElementById('game-over-stats');
+            if (statsEl) {
+                statsEl.innerHTML = `
+                    <h3>Statistiken</h3>
+                    <p>Längste Linie: ${this.longestLine} Stationen</p>
+                    <p>Meistbesuchte Station: ${this.busiestStation ? this.busiestStation.shape : 'N/A'}</p>
+                    <p>Gesamtdistanz der Züge: ${Math.round(this.totalDistanceTraveledByTrains)} km</p>
+                `;
+            }
         }
     }
     
