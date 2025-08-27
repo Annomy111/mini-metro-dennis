@@ -9,6 +9,12 @@ class MenuSystem {
         this.selectedCity = null;
         /** @type {string} */
         this.selectedMode = 'normal';
+        /** @type {object} */
+        this.mapTransform = { x: 0, y: 0, scale: 1 };
+        /** @type {boolean} */
+        this.isPanning = false;
+        /** @type {object|null} */
+        this.lastMousePos = null;
         
         /**
          * Data for all cities available in the menu.
@@ -360,6 +366,8 @@ class MenuSystem {
      */
     showCitySelect() {
         this.currentScreen = 'city-select';
+        this.setupMapInteraction();
+        this.renderCityMap();
     }
     
     /**
@@ -414,7 +422,25 @@ class MenuSystem {
                     <p>Highscore: ${city.highscores.normal}</p>
                     <ul>${featuresHTML}</ul>
                 `;
-                marker.onclick = () => this.selectCity(key);
+
+                const modeSelection = document.createElement('div');
+                modeSelection.className = 'mode-selection';
+                Object.entries(this.gameModes).forEach(([modeKey, mode]) => {
+                    if (mode.unlocked) {
+                        const modeButton = document.createElement('button');
+                        modeButton.className = 'menu-btn';
+                        modeButton.textContent = mode.name;
+                        modeButton.onclick = (e) => {
+                            e.stopPropagation();
+                            this.selectCity(key);
+                            this.selectMode(modeKey);
+                            this.startSelectedGame();
+                        };
+                        modeSelection.appendChild(modeButton);
+                    }
+                });
+                infoCard.appendChild(modeSelection);
+
             } else {
                 const achievement = this.achievements[city.requiredAchievement];
                 infoCard.innerHTML += `<p>Locked</p>`;
@@ -429,56 +455,14 @@ class MenuSystem {
         });
     }
 
-    renderModeSelection() {
-        const modeContainer = document.getElementById('mode-selection');
-        modeContainer.innerHTML = '';
-
-        Object.entries(this.gameModes).forEach(([key, mode]) => {
-            const card = document.createElement('div');
-            card.className = 'mode-card' + (mode.unlocked ? '' : ' locked');
-
-            card.innerHTML = `
-                <div class="mode-icon">${mode.icon}</div>
-                <div class="mode-name">${mode.name}</div>
-                <div class="mode-description">${mode.description}</div>
-            `;
-
-            if (mode.unlocked) {
-                card.onclick = () => this.selectMode(key);
-            }
-
-            modeContainer.appendChild(card);
-        });
-    }
-
     selectCity(cityKey) {
         this.selectedCity = cityKey;
         document.querySelectorAll('.city-marker').forEach(m => m.classList.remove('selected'));
         event.target.classList.add('selected');
-
-        this.updateStartButton();
     }
 
     selectMode(modeKey) {
         this.selectedMode = modeKey;
-        document.querySelectorAll('.mode-card').forEach(m => m.classList.remove('selected'));
-        event.target.closest('.mode-card').classList.add('selected');
-
-        this.updateStartButton();
-    }
-
-    updateStartButton() {
-        const btn = document.getElementById('start-game-btn');
-        if (this.selectedCity && this.selectedMode) {
-            btn.style.display = 'inline-block';
-            btn.textContent = `Start ${this.cities[this.selectedCity].name} - ${this.gameModes[this.selectedMode].name}`;
-        }
-    }
-
-    startSelectedGame() {
-        if (this.selectedCity && this.selectedMode) {
-            this.startGame(this.selectedCity, this.selectedMode);
-        }
     }
 
     renderAchievements() {
@@ -545,6 +529,49 @@ class MenuSystem {
             `;
             leaderboardContainer.appendChild(div);
         });
+    }
+
+    setupMapInteraction() {
+        const mapContainer = document.getElementById('world-map');
+
+        mapContainer.addEventListener('mousedown', (e) => {
+            this.isPanning = true;
+            this.lastMousePos = { x: e.clientX, y: e.clientY };
+            mapContainer.style.cursor = 'grabbing';
+        });
+
+        mapContainer.addEventListener('mousemove', (e) => {
+            if (!this.isPanning) return;
+            const dx = e.clientX - this.lastMousePos.x;
+            const dy = e.clientY - this.lastMousePos.y;
+            this.mapTransform.x += dx;
+            this.mapTransform.y += dy;
+            this.lastMousePos = { x: e.clientX, y: e.clientY };
+            this.updateMapTransform();
+        });
+
+        mapContainer.addEventListener('mouseup', () => {
+            this.isPanning = false;
+            mapContainer.style.cursor = 'grab';
+        });
+
+        mapContainer.addEventListener('mouseleave', () => {
+            this.isPanning = false;
+            mapContainer.style.cursor = 'grab';
+        });
+
+        mapContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const scaleAmount = 0.1;
+            this.mapTransform.scale -= e.deltaY * scaleAmount;
+            this.mapTransform.scale = Math.min(Math.max(0.5, this.mapTransform.scale), 2);
+            this.updateMapTransform();
+        });
+    }
+
+    updateMapTransform() {
+        const map = document.getElementById('world-map');
+        map.style.transform = `translate(${this.mapTransform.x}px, ${this.mapTransform.y}px) scale(${this.mapTransform.scale})`;
     }
 }
 
