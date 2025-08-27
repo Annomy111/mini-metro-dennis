@@ -129,6 +129,37 @@
         .play-icon {
             display: none;
         }
+
+        .how-to-play-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+
+        body.night-mode .how-to-play-container {
+            color: #F2F2F2;
+        }
+
+        .how-to-play-container h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .how-to-play-container h2 {
+            font-size: 24px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .how-to-play-container p, .how-to-play-container ul {
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .how-to-play-container ul {
+            padding-left: 20px;
+        }
     </style>
 </head>
 <body>
@@ -140,10 +171,36 @@
             <button class="menu-btn" onclick="showDailyChallenge()">Daily Challenge</button>
             <button class="menu-btn" onclick="showAchievements()">Achievements</button>
             <button class="menu-btn" onclick="showStatistics()">Statistics</button>
+            <button class="menu-btn" onclick="showHowToPlay()">How to Play</button>
             <button class="menu-btn" onclick="showSettings()">Settings</button>
         </div>
     </div>
     
+    <!-- How to Play Screen -->
+    <div id="how-to-play" class="screen">
+        <button class="back-btn" onclick="showMainMenu()">← Back</button>
+        <div class="how-to-play-container">
+            <h1>How to Play</h1>
+            <p><strong>Goal:</strong> Transport as many passengers as possible before stations get too overcrowded.</p>
+
+            <h2>Controls</h2>
+            <ul>
+                <li><strong>Draw Lines:</strong> Click and drag from one station to another to create a new line or extend an existing one.</li>
+                <li><strong>Delete Lines:</strong> Right-click on a line segment to delete the entire line.</li>
+                <li><strong>Mobile:</strong> Use tap and drag to draw, and double-tap to delete.</li>
+            </ul>
+
+            <h2>Stations</h2>
+            <p>Stations appear in different shapes. Passengers will want to travel to a station of a specific shape.</p>
+
+            <h2>Trains</h2>
+            <p>Trains will automatically run on your lines. You'll get more trains and other upgrades at the end of each week.</p>
+
+            <h2>Game Over</h2>
+            <p>If a station has too many waiting passengers for too long, it will become overcrowded and the game will end.</p>
+        </div>
+    </div>
+
     <!-- City Selection Screen -->
     <div id="city-select" class="screen">
         <button class="back-btn" onclick="showMainMenu()">← Back</button>
@@ -275,6 +332,11 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('statistics').classList.add('active');
             updateStatistics();
+        }
+
+        function showHowToPlay() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('how-to-play').classList.add('active');
         }
         
         function showDailyChallenge() {

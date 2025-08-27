@@ -11,6 +11,10 @@ class MiniMetro {
         this.canvas = document.getElementById('gameCanvas');
         /** @type {CanvasRenderingContext2D} */
         this.ctx = this.canvas.getContext('2d');
+        /** @type {HTMLCanvasElement} */
+        this.staticCanvas = document.createElement('canvas');
+        /** @type {CanvasRenderingContext2D} */
+        this.staticCtx = this.staticCanvas.getContext('2d');
         this.setupCanvas();
         
         // Design tokens - smaller on mobile
@@ -113,6 +117,8 @@ class MiniMetro {
         // Set canvas to match window size
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
+        this.staticCanvas.width = window.innerWidth;
+        this.staticCanvas.height = window.innerHeight;
         
         // Store dimensions for calculations
         this.displayWidth = window.innerWidth;
@@ -128,10 +134,13 @@ class MiniMetro {
         window.addEventListener('resize', () => {
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
+            this.staticCanvas.width = window.innerWidth;
+            this.staticCanvas.height = window.innerHeight;
             this.displayWidth = window.innerWidth;
             this.displayHeight = window.innerHeight;
             this.canvas.style.width = window.innerWidth + 'px';
             this.canvas.style.height = window.innerHeight + 'px';
+            this.renderStaticElements();
         });
     }
     
@@ -140,6 +149,7 @@ class MiniMetro {
      */
     init() {
         this.loadCityConfig();
+        this.renderStaticElements();
         this.generateInitialStations();
         this.createInitialLines();
         this.setupEventListeners();
@@ -853,22 +863,30 @@ class MiniMetro {
     }
     
     /**
+     * Renders the static elements of the game to an off-screen canvas.
+     */
+    renderStaticElements() {
+        this.staticCtx.fillStyle = this.cityConfig.backgroundColor || '#F5F5F5';
+        this.staticCtx.fillRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
+        
+        const originalCtx = this.ctx;
+        this.ctx = this.staticCtx;
+        
+        this.renderCityName();
+        this.renderWater();
+        this.renderLandmarks();
+        
+        this.ctx = originalCtx;
+    }
+
+    /**
      * Renders the entire game screen.
      */
     render() {
-        // Clear canvas
-        this.ctx.fillStyle = this.cityConfig.backgroundColor || '#F5F5F5';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Render city name
-        this.renderCityName();
-        
-        // Render water
-        this.renderWater();
-        
-        // Render landmarks
-        this.renderLandmarks();
-        
+        // Clear canvas and draw static elements from off-screen canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(this.staticCanvas, 0, 0);
+
         // Render lines
         this.renderLines();
         
@@ -1452,7 +1470,7 @@ class MiniMetro {
      */
     calculateSpawnRate() {
         // More balanced spawn rate for enjoyable gameplay
-        let rate = 0.3 + (this.week * 0.1);  // Much slower base rate
+        let rate = 0.25 + (this.week * 0.08);  // Slower base rate and increment
         
         // Rush hour multiplier (7-9 AM and 5-7 PM)
         const timeProgress = this.dayProgress / this.dayDuration;
@@ -1494,6 +1512,15 @@ class MiniMetro {
             this.gameSpeed = 0;
         } else {
             this.gameSpeed = 1;
+        }
+
+        const speedDisplay = document.getElementById('speed-display');
+        if (speedDisplay) {
+            if (this.gameSpeed === 0) {
+                speedDisplay.textContent = '❚❚';
+            } else {
+                speedDisplay.textContent = `${this.gameSpeed}×`;
+            }
         }
     }
     
