@@ -1,0 +1,46 @@
+# Netlify Configuration for Mini Metro Dennis
+
+[build]
+  # Directory to publish
+  publish = "."
+  
+  # No build command needed for static site
+  command = "echo 'No build needed'"
+
+# Headers for better performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer-when-downgrade"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, immutable"
+
+[[headers]]
+  for = "/*.m4a"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000, immutable"
+
+# Redirects
+[[redirects]]
+  from = "/"
+  to = "/mini-metro-ultimate.html"
+  status = 200
+
+# Production context
+[context.production]
+  environment = { NODE_VERSION = "18" }
+
+# Deploy Preview context
+[context.deploy-preview]
+  environment = { NODE_VERSION = "18" }
