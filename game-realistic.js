@@ -72,6 +72,14 @@ class MiniMetro {
         this.dayProgress = 0;
         /** @type {number} */
         this.dayDuration = 20000;
+
+        // Statistics
+        /** @type {object|null} */
+        this.busiestStation = null;
+        /** @type {number} */
+        this.longestLine = 0;
+        /** @type {number} */
+        this.totalDistanceTraveledByTrains = 0;
         /** @type {number} */
         this.timeOfDay = 6;
         
@@ -80,6 +88,8 @@ class MiniMetro {
         this.availableLines = 3;
         /** @type {number} */
         this.availableTrains = 3;
+        /** @type {number} */
+        this.availableHighSpeedTrains = 0;
         /** @type {number} */
         this.availableCarriages = 0;
         /** @type {number} */
@@ -838,28 +848,39 @@ class MiniMetro {
                 )
             });
         }
+
+        if (line.stations.length > this.longestLine) {
+            this.longestLine = line.stations.length;
+        }
     }
     
     /**
      * Adds a new train to a line if resources are available.
      * @param {object} line - The line to add the train to.
      */
-    addTrainToLine(line) {
-        if (this.availableTrains > 0) {
-            const train = {
-                id: this.trains.length,
-                line: line,
-                position: 0,
-                direction: 1,
-                speed: 0.0005,
-                passengers: [],
-                capacity: 6
-            };
-            
-            this.trains.push(train);
-            line.trains.push(train);
+    addTrainToLine(line, isHighSpeed = false) {
+        if (isHighSpeed && this.availableHighSpeedTrains > 0) {
+            this.availableHighSpeedTrains--;
+        } else if (!isHighSpeed && this.availableTrains > 0) {
             this.availableTrains--;
+        } else {
+            return;
         }
+
+        const train = {
+            id: this.trains.length,
+            line: line,
+            position: 0,
+            direction: 1,
+            speed: isHighSpeed ? 0.00075 : 0.0005,
+            passengers: [],
+            capacity: isHighSpeed ? 4 : 6,
+            isHighSpeed: isHighSpeed,
+            wheelOffset: 0
+        };
+
+        this.trains.push(train);
+        line.trains.push(train);
     }
     
     /**
@@ -1270,14 +1291,31 @@ class MiniMetro {
             this.ctx.save();
             this.ctx.translate(x, y);
             
-            this.ctx.fillStyle = '#333';
+            this.ctx.fillStyle = train.isHighSpeed ? '#F0AB00' : '#333';
             this.ctx.strokeStyle = train.line.color;
             this.ctx.lineWidth = 2;
             
             this.ctx.beginPath();
-            this.ctx.rect(-20, -6, 40, 12);
+            if (train.isHighSpeed) {
+                this.ctx.moveTo(-25, 0);
+                this.ctx.lineTo(-15, -8);
+                this.ctx.lineTo(20, -8);
+                this.ctx.lineTo(25, 0);
+                this.ctx.lineTo(20, 8);
+                this.ctx.lineTo(-15, 8);
+                this.ctx.closePath();
+            } else {
+                this.ctx.rect(-20, -6, 40, 12);
+            }
             this.ctx.fill();
             this.ctx.stroke();
+
+            // Draw wheels
+            this.ctx.fillStyle = '#555';
+            this.ctx.beginPath();
+            this.ctx.arc(-15 + train.wheelOffset, 10, 3, 0, Math.PI * 2);
+            this.ctx.arc(15 + train.wheelOffset, 10, 3, 0, Math.PI * 2);
+            this.ctx.fill();
             
             this.ctx.restore();
         }
@@ -1371,7 +1409,10 @@ class MiniMetro {
             if (!train.line || train.line.stations.length < 2) continue;
             
             // Move train
+            const distance = Math.abs(train.direction * train.speed * deltaTime);
+            this.totalDistanceTraveledByTrains += distance;
             train.position += train.direction * train.speed * deltaTime;
+            train.wheelOffset = (train.wheelOffset + train.direction * 0.1 * deltaTime) % 5;
             
             // Check if at a station
             const stationIndex = Math.floor(train.position * (train.line.stations.length - 1));
@@ -1423,7 +1464,13 @@ class MiniMetro {
      * @param {number} deltaTime - The time elapsed since the last frame.
      */
     updatePassengers(deltaTime) {
+        let maxPassengers = 0;
         for (let station of this.stations) {
+            if (station.passengers.length > maxPassengers) {
+                maxPassengers = station.passengers.length;
+                this.busiestStation = station;
+            }
+
             if (station.passengers.length > station.capacity) {
                 station.overcrowding += deltaTime;
                 if (station.overcrowding >= station.maxOvercrowding) {
@@ -1454,8 +1501,65 @@ class MiniMetro {
                 // Add bridges based on city config
                 const bridgesPerWeek = this.cityConfig.bridgesPerWeek || 1;
                 this.availableBridges += Math.floor(bridgesPerWeek);
+
+                // Award new train or high-speed train
+                if (this.week % 2 === 0) {
+                    this.availableTrains++;
+                } else {
+                    this.availableHighSpeedTrains++;
+                }
+                this.showUpgradeModal();
             }
         }
+    }
+
+    showUpgradeModal() {
+        const upgradeOptions = [
+            { type: 'train', text: 'Neuer Zug' },
+            { type: 'carriage', text: 'Waggon' },
+            { type: 'line', text: 'Neue Linie' },
+            { type: 'interchange', text: 'Umsteigebahnhof' }
+        ];
+
+        if (this.availableHighSpeedTrains > 0) {
+            upgradeOptions.push({ type: 'high-speed-train', text: 'High-Speed Zug' });
+        }
+
+        const modal = document.getElementById('upgrade-modal');
+        const optionsContainer = document.getElementById('upgrade-options');
+        optionsContainer.innerHTML = '';
+
+        for (const option of upgradeOptions) {
+            const button = document.createElement('button');
+            button.className = 'control-btn';
+            button.textContent = option.text;
+            button.onclick = () => this.selectUpgrade(option.type);
+            optionsContainer.appendChild(button);
+        }
+
+        modal.style.display = 'block';
+    }
+
+    selectUpgrade(type) {
+        switch (type) {
+            case 'train':
+                this.availableTrains++;
+                break;
+            case 'carriage':
+                this.availableCarriages++;
+                break;
+            case 'line':
+                this.availableLines++;
+                this.createInitialLines(); // This will add the new line
+                break;
+            case 'interchange':
+                this.availableInterchanges++;
+                break;
+            case 'high-speed-train':
+                this.addTrainToLine(this.lines[0], true);
+                break;
+        }
+        document.getElementById('upgrade-modal').style.display = 'none';
         
         // Spawn passengers more frequently based on week and time of day
         const spawnRate = this.calculateSpawnRate();
@@ -1558,6 +1662,13 @@ class MiniMetro {
         this.day = 1;
         this.dayProgress = 0;
         
+        this.availableTrains = 3;
+        this.availableHighSpeedTrains = 0;
+
+        this.busiestStation = null;
+        this.longestLine = 0;
+        this.totalDistanceTraveledByTrains = 0;
+
         this.loadCityConfig();
         this.generateInitialStations();
         this.createInitialLines();
@@ -1576,6 +1687,15 @@ class MiniMetro {
             gameOverEl.style.display = 'block';
             const finalScoreEl = document.getElementById('final-score');
             if (finalScoreEl) finalScoreEl.textContent = this.score;
+
+            const statsEl = document.createElement('div');
+            statsEl.innerHTML = `
+                <h3>Statistiken</h3>
+                <p>Längste Linie: ${this.longestLine} Stationen</p>
+                <p>Meistbesuchte Station: ${this.busiestStation ? this.busiestStation.shape : 'N/A'}</p>
+                <p>Gesamtdistanz der Züge: ${Math.round(this.totalDistanceTraveledByTrains)} km</p>
+            `;
+            gameOverEl.appendChild(statsEl);
         }
     }
     
