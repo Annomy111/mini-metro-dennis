@@ -1,11 +1,28 @@
+/**
+ * Represents the main game engine for the Mini Metro game.
+ * This class manages the game state, rendering, user input, and all gameplay logic.
+ */
 class MiniMetro {
+    /**
+     * Initializes the game engine.
+     */
     constructor() {
+        /** @type {HTMLCanvasElement} */
         this.canvas = document.getElementById('gameCanvas');
+        /** @type {CanvasRenderingContext2D} */
         this.ctx = this.canvas.getContext('2d');
+        /** @type {HTMLCanvasElement} */
+        this.staticCanvas = document.createElement('canvas');
+        /** @type {CanvasRenderingContext2D} */
+        this.staticCtx = this.staticCanvas.getContext('2d');
         this.setupCanvas();
         
         // Design tokens - smaller on mobile
         const isMobile = window.innerWidth < 768;
+        /**
+         * Design tokens for styling the game elements.
+         * @type {object}
+         */
         this.designTokens = {
             u: 4,
             wl: isMobile ? 6 : 8,
@@ -18,54 +35,90 @@ class MiniMetro {
         };
         
         // Game state
+        /** @type {string} */
         this.currentCity = 'london';
+        /** @type {string} */
         this.currentMode = 'normal';
+        /** @type {object|null} */
         this.cityConfig = null;
         
+        /** @type {boolean} */
         this.nightMode = false;
+        /** @type {boolean} */
         this.paused = false;
+        /** @type {boolean} */
         this.gameOver = false;
+        /** @type {number} */
         this.gameSpeed = 1;
         
+        /** @type {Array<object>} */
         this.stations = [];
+        /** @type {Array<object>} */
         this.lines = [];
+        /** @type {Array<object>} */
         this.trains = [];
+        /** @type {Array<object>} */
         this.passengers = [];
+        /** @type {Array<object>} */
         this.bridges = [];
         
+        /** @type {number} */
         this.score = 0;
+        /** @type {number} */
         this.week = 1;
+        /** @type {number} */
         this.day = 1;
+        /** @type {number} */
         this.dayProgress = 0;
+        /** @type {number} */
         this.dayDuration = 20000;
+        /** @type {number} */
         this.timeOfDay = 6;
         
         // Resources
+        /** @type {number} */
         this.availableLines = 3;
+        /** @type {number} */
         this.availableTrains = 3;
+        /** @type {number} */
         this.availableCarriages = 0;
+        /** @type {number} */
         this.availableBridges = 3;
+        /** @type {number} */
         this.availableInterchanges = 0;
         
         // Interaction
+        /** @type {object|null} */
         this.hoveredStation = null;
+        /** @type {object|null} */
         this.drawingLine = null;
+        /** @type {object|null} */
         this.selectedStation = null;
+        /** @type {number|null} */
         this.tempMouseX = null;
+        /** @type {number|null} */
         this.tempMouseY = null;
         
         // Station shapes
+        /** @type {Array<string>} */
         this.stationShapes = ['circle', 'triangle', 'square'];
+        /** @type {Array<string>} */
         this.rareShapes = ['diamond', 'cross', 'star', 'pentagon', 'fan'];
         
+        /** @type {number} */
         this.lastFrameTime = 0;
         this.init();
     }
     
+    /**
+     * Sets up the canvas to fill the screen and handles resizing.
+     */
     setupCanvas() {
         // Set canvas to match window size
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
+        this.staticCanvas.width = window.innerWidth;
+        this.staticCanvas.height = window.innerHeight;
         
         // Store dimensions for calculations
         this.displayWidth = window.innerWidth;
@@ -81,15 +134,22 @@ class MiniMetro {
         window.addEventListener('resize', () => {
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
+            this.staticCanvas.width = window.innerWidth;
+            this.staticCanvas.height = window.innerHeight;
             this.displayWidth = window.innerWidth;
             this.displayHeight = window.innerHeight;
             this.canvas.style.width = window.innerWidth + 'px';
             this.canvas.style.height = window.innerHeight + 'px';
+            this.renderStaticElements();
         });
     }
     
+    /**
+     * Initializes the game by loading configurations, generating stations, and starting the game loop.
+     */
     init() {
         this.loadCityConfig();
+        this.renderStaticElements();
         this.generateInitialStations();
         this.createInitialLines();
         this.setupEventListeners();
@@ -97,6 +157,9 @@ class MiniMetro {
         this.gameLoop(0);
     }
     
+    /**
+     * Loads the configuration for the current city from the CityMaps object.
+     */
     loadCityConfig() {
         if (typeof CityMaps !== 'undefined' && CityMaps[this.currentCity]) {
             this.cityConfig = CityMaps[this.currentCity];
@@ -115,6 +178,9 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Updates the city name display in the UI.
+     */
     updateCityDisplay() {
         // Add city name to canvas or UI
         const cityNameEl = document.getElementById('city-name');
@@ -123,6 +189,9 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Generates the initial set of stations for the current city.
+     */
     generateInitialStations() {
         // Adjust for mobile screens
         const isMobile = window.innerWidth < 768;
@@ -175,6 +244,12 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Checks if a given coordinate is in a water body.
+     * @param {number} x - The x-coordinate.
+     * @param {number} y - The y-coordinate.
+     * @returns {boolean} True if the coordinate is in water, false otherwise.
+     */
     isInWater(x, y) {
         if (!this.cityConfig || !this.cityConfig.rivers) return false;
         
@@ -229,6 +304,16 @@ class MiniMetro {
         return false;
     }
     
+    /**
+     * Calculates the shortest distance from a point to a line segment.
+     * @param {number} px - The x-coordinate of the point.
+     * @param {number} py - The y-coordinate of the point.
+     * @param {number} x1 - The x-coordinate of the start of the line segment.
+     * @param {number} y1 - The y-coordinate of the start of the line segment.
+     * @param {number} x2 - The x-coordinate of the end of the line segment.
+     * @param {number} y2 - The y-coordinate of the end of the line segment.
+     * @returns {number} The distance from the point to the line segment.
+     */
     distanceToLineSegment(px, py, x1, y1, x2, y2) {
         const A = px - x1;
         const B = py - y1;
@@ -259,6 +344,13 @@ class MiniMetro {
         return Math.sqrt(dx * dx + dy * dy);
     }
     
+    /**
+     * Checks if a new station position is valid (i.e., not too close to other stations).
+     * @param {number} x - The x-coordinate of the new station.
+     * @param {number} y - The y-coordinate of the new station.
+     * @param {number} minDistance - The minimum allowed distance to other stations.
+     * @returns {boolean} True if the position is valid, false otherwise.
+     */
     isValidStationPosition(x, y, minDistance) {
         for (let station of this.stations) {
             const dist = Math.hypot(station.x - x, station.y - y);
@@ -269,6 +361,9 @@ class MiniMetro {
         return true;
     }
     
+    /**
+     * Creates the initial set of empty lines available to the player.
+     */
     createInitialLines() {
         this.lines = [];
         const lineColors = ['#DD2515', '#2581C4', '#35AB52', '#F0AB00', '#00BFFF', '#FFDD55'];
@@ -285,6 +380,9 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Sets up event listeners for mouse and touch input.
+     */
     setupEventListeners() {
         // Mouse events
         this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
@@ -304,6 +402,10 @@ class MiniMetro {
         this.lastTouchEnd = 0;
     }
     
+    /**
+     * Handles the mouse down event.
+     * @param {MouseEvent} e - The mouse event.
+     */
     onMouseDown(e) {
         if (this.paused || this.gameOver) return;
         
@@ -339,6 +441,11 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Handles a right-click event to delete a line segment.
+     * @param {number} x - The x-coordinate of the click.
+     * @param {number} y - The y-coordinate of the click.
+     */
     handleRightClick(x, y) {
         // Find line segment near click
         for (let line of this.lines) {
@@ -373,6 +480,10 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Handles the mouse move event.
+     * @param {MouseEvent} e - The mouse event.
+     */
     onMouseMove(e) {
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -386,7 +497,10 @@ class MiniMetro {
         }
     }
     
-    // Touch event handlers
+    /**
+     * Handles the touch start event.
+     * @param {TouchEvent} e - The touch event.
+     */
     onTouchStart(e) {
         e.preventDefault();
         if (this.paused || this.gameOver) return;
@@ -453,6 +567,10 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Handles the touch move event.
+     * @param {TouchEvent} e - The touch event.
+     */
     onTouchMove(e) {
         e.preventDefault();
         
@@ -476,6 +594,10 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Handles the touch end event.
+     * @param {TouchEvent} e - The touch event.
+     */
     onTouchEnd(e) {
         e.preventDefault();
         
@@ -582,6 +704,10 @@ class MiniMetro {
         delete this.touches[touch.identifier];
     }
     
+    /**
+     * Handles the mouse up event to finalize line drawing.
+     * @param {MouseEvent} e - The mouse event.
+     */
     onMouseUp(e) {
         if (!this.drawingLine) return;
         
@@ -626,6 +752,12 @@ class MiniMetro {
         this.tempMouseY = null;
     }
     
+    /**
+     * Finds the station at a given coordinate.
+     * @param {number} x - The x-coordinate.
+     * @param {number} y - The y-coordinate.
+     * @returns {object|null} The station object if found, otherwise null.
+     */
     getStationAt(x, y) {
         // Increase touch target size for mobile - adjusted for smaller stations
         const isMobile = 'ontouchstart' in window;
@@ -640,6 +772,14 @@ class MiniMetro {
         return null;
     }
     
+    /**
+     * Checks if a line segment between two points crosses a water body.
+     * @param {number} x1 - The x-coordinate of the first point.
+     * @param {number} y1 - The y-coordinate of the first point.
+     * @param {number} x2 - The x-coordinate of the second point.
+     * @param {number} y2 - The y-coordinate of the second point.
+     * @returns {boolean} True if the line crosses water, false otherwise.
+     */
     crossesWater(x1, y1, x2, y2) {
         const steps = 20;
         for (let i = 0; i <= steps; i++) {
@@ -653,6 +793,9 @@ class MiniMetro {
         return false;
     }
     
+    /**
+     * Displays a warning message when no bridges are available.
+     */
     showNoBridgeWarning() {
         // Flash warning on screen
         const warning = document.createElement('div');
@@ -676,6 +819,10 @@ class MiniMetro {
         }, 2000);
     }
     
+    /**
+     * Recalculates the segments of a line after a change.
+     * @param {object} line - The line to recalculate.
+     */
     recalculateLineSegments(line) {
         line.segments = [];
         
@@ -693,6 +840,10 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Adds a new train to a line if resources are available.
+     * @param {object} line - The line to add the train to.
+     */
     addTrainToLine(line) {
         if (this.availableTrains > 0) {
             const train = {
@@ -711,20 +862,31 @@ class MiniMetro {
         }
     }
     
-    render() {
-        // Clear canvas
-        this.ctx.fillStyle = this.cityConfig.backgroundColor || '#F5F5F5';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    /**
+     * Renders the static elements of the game to an off-screen canvas.
+     */
+    renderStaticElements() {
+        this.staticCtx.fillStyle = this.cityConfig.backgroundColor || '#F5F5F5';
+        this.staticCtx.fillRect(0, 0, this.staticCanvas.width, this.staticCanvas.height);
         
-        // Render city name
+        const originalCtx = this.ctx;
+        this.ctx = this.staticCtx;
+        
         this.renderCityName();
-        
-        // Render water
         this.renderWater();
-        
-        // Render landmarks
         this.renderLandmarks();
         
+        this.ctx = originalCtx;
+    }
+
+    /**
+     * Renders the entire game screen.
+     */
+    render() {
+        // Clear canvas and draw static elements from off-screen canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(this.staticCanvas, 0, 0);
+
         // Render lines
         this.renderLines();
         
@@ -749,6 +911,9 @@ class MiniMetro {
         this.renderUI();
     }
     
+    /**
+     * Renders the city name on the canvas.
+     */
     renderCityName() {
         this.ctx.save();
         
@@ -783,6 +948,9 @@ class MiniMetro {
         this.ctx.restore();
     }
     
+    /**
+     * Renders water bodies (rivers, bays) on the canvas.
+     */
     renderWater() {
         if (!this.cityConfig) return;
         
@@ -894,6 +1062,9 @@ class MiniMetro {
         this.ctx.restore();
     }
     
+    /**
+     * Renders landmarks on the canvas.
+     */
     renderLandmarks() {
         if (!this.cityConfig || !this.cityConfig.landmarks) return;
         
@@ -911,6 +1082,9 @@ class MiniMetro {
         this.ctx.restore();
     }
     
+    /**
+     * Renders all metro lines on the canvas.
+     */
     renderLines() {
         for (let line of this.lines) {
             if (line.stations.length < 2) continue;
@@ -938,6 +1112,9 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Renders the temporary line while the user is drawing it.
+     */
     renderTempLine() {
         if (!this.drawingLine || !this.selectedStation || !this.tempMouseX) return;
         
@@ -961,6 +1138,9 @@ class MiniMetro {
         this.ctx.setLineDash([]);
     }
     
+    /**
+     * Renders all bridges on the canvas.
+     */
     renderBridges() {
         for (let line of this.lines) {
             for (let bridge of line.bridges) {
@@ -990,6 +1170,9 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Renders all stations on the canvas.
+     */
     renderStations() {
         const colors = {
             stationFill: '#FFFFFF',
@@ -1036,6 +1219,11 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Draws a station shape on the canvas.
+     * @param {string} shape - The shape to draw (e.g., 'circle', 'triangle').
+     * @param {number} size - The size of the shape.
+     */
     drawStationShape(shape, size) {
         this.ctx.beginPath();
         
@@ -1061,6 +1249,9 @@ class MiniMetro {
         this.ctx.stroke();
     }
     
+    /**
+     * Renders all trains on the canvas.
+     */
     renderTrains() {
         // Simple train rendering
         for (let train of this.trains) {
@@ -1092,6 +1283,9 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Renders all waiting passengers at stations.
+     */
     renderPassengers() {
         for (let station of this.stations) {
             if (station.passengers.length === 0) continue;
@@ -1131,6 +1325,9 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Renders the user interface elements (e.g., score, week).
+     */
     renderUI() {
         // Bridge counter
         this.ctx.save();
@@ -1140,6 +1337,9 @@ class MiniMetro {
         this.ctx.restore();
     }
     
+    /**
+     * Spawns a new passenger at a random station.
+     */
     spawnPassenger() {
         if (this.stations.length < 2) return;
         
@@ -1162,6 +1362,10 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Updates the state of all trains.
+     * @param {number} deltaTime - The time elapsed since the last frame.
+     */
     updateTrains(deltaTime) {
         for (let train of this.trains) {
             if (!train.line || train.line.stations.length < 2) continue;
@@ -1214,6 +1418,10 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Updates the state of all passengers.
+     * @param {number} deltaTime - The time elapsed since the last frame.
+     */
     updatePassengers(deltaTime) {
         for (let station of this.stations) {
             if (station.passengers.length > station.capacity) {
@@ -1227,6 +1435,10 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Updates the game time, including day, week, and passenger spawning.
+     * @param {number} deltaTime - The time elapsed since the last frame.
+     */
     updateGameTime(deltaTime) {
         if (this.paused || this.gameOver) return;
         
@@ -1252,9 +1464,13 @@ class MiniMetro {
         }
     }
     
+    /**
+     * Calculates the passenger spawn rate based on game progress and time of day.
+     * @returns {number} The calculated spawn rate.
+     */
     calculateSpawnRate() {
         // More balanced spawn rate for enjoyable gameplay
-        let rate = 0.3 + (this.week * 0.1);  // Much slower base rate
+        let rate = 0.25 + (this.week * 0.08);  // Slower base rate and increment
         
         // Rush hour multiplier (7-9 AM and 5-7 PM)
         const timeProgress = this.dayProgress / this.dayDuration;
@@ -1267,6 +1483,9 @@ class MiniMetro {
         return Math.min(rate, 2.0); // Reasonable cap for better gameplay
     }
     
+    /**
+     * Updates the UI with the latest score and week.
+     */
     updateUI() {
         // Update score, week, etc.
         const scoreEl = document.getElementById('score-value');
@@ -1276,10 +1495,16 @@ class MiniMetro {
         if (weekEl) weekEl.textContent = this.week;
     }
     
+    /**
+     * Toggles the paused state of the game.
+     */
     togglePause() {
         this.paused = !this.paused;
     }
     
+    /**
+     * Cycles through the available game speeds.
+     */
     cycleSpeed() {
         if (this.gameSpeed === 1) {
             this.gameSpeed = 2;
@@ -1288,19 +1513,39 @@ class MiniMetro {
         } else {
             this.gameSpeed = 1;
         }
+
+        const speedDisplay = document.getElementById('speed-display');
+        if (speedDisplay) {
+            if (this.gameSpeed === 0) {
+                speedDisplay.textContent = '❚❚';
+            } else {
+                speedDisplay.textContent = `${this.gameSpeed}×`;
+            }
+        }
     }
     
+    /**
+     * Toggles the night mode.
+     */
     toggleNightMode() {
         this.nightMode = !this.nightMode;
         document.body.classList.toggle('night-mode');
     }
     
+    /**
+     * Initializes a new game with the specified city and mode.
+     * @param {string} city - The key of the city to play.
+     * @param {string} mode - The game mode to play.
+     */
     initializeCity(city, mode) {
         this.currentCity = city || 'london';
         this.currentMode = mode || 'normal';
         this.restart();
     }
     
+    /**
+     * Restarts the game, resetting all state variables.
+     */
     restart() {
         this.stations = [];
         this.lines = [];
@@ -1321,6 +1566,9 @@ class MiniMetro {
         this.paused = false;
     }
     
+    /**
+     * Ends the game and displays the game over screen.
+     */
     endGame() {
         this.gameOver = true;
         const gameOverEl = document.getElementById('game-over');
@@ -1331,6 +1579,10 @@ class MiniMetro {
         }
     }
     
+    /**
+     * The main game loop, which updates and renders the game on each frame.
+     * @param {number} currentTime - The current time provided by requestAnimationFrame.
+     */
     gameLoop(currentTime) {
         const deltaTime = currentTime - this.lastFrameTime;
         this.lastFrameTime = currentTime;

@@ -129,6 +129,85 @@
         .play-icon {
             display: none;
         }
+
+        .how-to-play-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+
+        body.night-mode .how-to-play-container {
+            color: #F2F2F2;
+        }
+
+        .how-to-play-container h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .how-to-play-container h2 {
+            font-size: 24px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .how-to-play-container p, .how-to-play-container ul {
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .how-to-play-container ul {
+            padding-left: 20px;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pop-in {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+
+        #world-map {
+            animation: fade-in 0.5s ease-out;
+        }
+
+        .city-marker {
+            animation: pop-in 0.5s ease-out both;
+        }
+
+        .city-info-card {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 20;
+            white-space: nowrap;
+        }
+
+        .city-marker:hover .city-info-card {
+            display: flex;
+        }
+
+        .city-info-card h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .city-info-card p {
+            margin: 0;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -140,10 +219,36 @@
             <button class="menu-btn" onclick="showDailyChallenge()">Daily Challenge</button>
             <button class="menu-btn" onclick="showAchievements()">Achievements</button>
             <button class="menu-btn" onclick="showStatistics()">Statistics</button>
+            <button class="menu-btn" onclick="showHowToPlay()">How to Play</button>
             <button class="menu-btn" onclick="showSettings()">Settings</button>
         </div>
     </div>
     
+    <!-- How to Play Screen -->
+    <div id="how-to-play" class="screen">
+        <button class="back-btn" onclick="showMainMenu()">← Back</button>
+        <div class="how-to-play-container">
+            <h1>How to Play</h1>
+            <p><strong>Goal:</strong> Transport as many passengers as possible before stations get too overcrowded.</p>
+
+            <h2>Controls</h2>
+            <ul>
+                <li><strong>Draw Lines:</strong> Click and drag from one station to another to create a new line or extend an existing one.</li>
+                <li><strong>Delete Lines:</strong> Right-click on a line segment to delete the entire line.</li>
+                <li><strong>Mobile:</strong> Use tap and drag to draw, and double-tap to delete.</li>
+            </ul>
+
+            <h2>Stations</h2>
+            <p>Stations appear in different shapes. Passengers will want to travel to a station of a specific shape.</p>
+
+            <h2>Trains</h2>
+            <p>Trains will automatically run on your lines. You'll get more trains and other upgrades at the end of each week.</p>
+
+            <h2>Game Over</h2>
+            <p>If a station has too many waiting passengers for too long, it will become overcrowded and the game will end.</p>
+        </div>
+    </div>
+
     <!-- City Selection Screen -->
     <div id="city-select" class="screen">
         <button class="back-btn" onclick="showMainMenu()">← Back</button>
@@ -243,127 +348,58 @@
     <script src="menu.js"></script>
     <script src="game-realistic.js"></script>
     <script>
-        let selectedCity = null;
-        let selectedMode = 'normal';
-        
+        // All menu logic is now in menu.js
+        // These global functions are wrappers to call methods on the menuSystem instance.
+
         function showMainMenu() {
+            menuSystem.showMainMenu();
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('main-menu').classList.add('active');
             document.getElementById('gameCanvas').classList.remove('active');
             document.getElementById('ui-overlay').classList.remove('active');
             document.getElementById('controls').classList.remove('active');
-            
             if (window.game) {
                 game.paused = true;
             }
         }
-        
+
         function showCitySelect() {
+            menuSystem.showCitySelect();
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('city-select').classList.add('active');
-            renderCityMap();
-            renderModeSelection();
+            menuSystem.renderCityMap();
+            menuSystem.renderModeSelection();
         }
-        
+
         function showAchievements() {
+            menuSystem.showAchievements();
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('achievements').classList.add('active');
-            renderAchievements();
+            menuSystem.renderAchievements();
         }
-        
+
         function showStatistics() {
+            menuSystem.showStatistics();
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('statistics').classList.add('active');
-            updateStatistics();
+            menuSystem.updateStatistics();
         }
-        
+
+        function showHowToPlay() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('how-to-play').classList.add('active');
+        }
+
         function showDailyChallenge() {
-            if (!menuSystem.dailyChallenge.played) {
-                startGame('london', 'daily');
-            } else {
-                alert('Du hast die heutige Challenge bereits gespielt!\nScore: ' + menuSystem.dailyChallenge.score);
-            }
+            menuSystem.showDailyChallenge();
         }
-        
+
         function showSettings() {
             alert('Settings coming soon!');
         }
-        
-        function renderCityMap() {
-            const mapContainer = document.getElementById('world-map');
-            mapContainer.innerHTML = '';
-            
-            Object.entries(menuSystem.cities).forEach(([key, city]) => {
-                const marker = document.createElement('div');
-                marker.className = 'city-marker' + (city.unlocked ? '' : ' locked');
-                marker.style.left = (city.position.x * 100) + '%';
-                marker.style.top = (city.position.y * 100) + '%';
-                marker.style.background = city.unlocked ? city.color : '#999';
-                marker.textContent = city.name.substring(0, 1);
-                
-                const tooltip = document.createElement('div');
-                tooltip.className = 'city-tooltip';
-                tooltip.textContent = city.name + (city.unlocked ? '' : ' (Locked)');
-                marker.appendChild(tooltip);
-                
-                if (city.unlocked) {
-                    marker.onclick = () => selectCity(key);
-                }
-                
-                mapContainer.appendChild(marker);
-            });
-        }
-        
-        function renderModeSelection() {
-            const modeContainer = document.getElementById('mode-selection');
-            modeContainer.innerHTML = '';
-            
-            Object.entries(menuSystem.gameModes).forEach(([key, mode]) => {
-                const card = document.createElement('div');
-                card.className = 'mode-card' + (mode.unlocked ? '' : ' locked');
-                
-                card.innerHTML = `
-                    <div class="mode-icon">${mode.icon}</div>
-                    <div class="mode-name">${mode.name}</div>
-                    <div class="mode-description">${mode.description}</div>
-                `;
-                
-                if (mode.unlocked) {
-                    card.onclick = () => selectMode(key);
-                }
-                
-                modeContainer.appendChild(card);
-            });
-        }
-        
-        function selectCity(cityKey) {
-            selectedCity = cityKey;
-            document.querySelectorAll('.city-marker').forEach(m => m.classList.remove('selected'));
-            event.target.classList.add('selected');
-            
-            updateStartButton();
-        }
-        
-        function selectMode(modeKey) {
-            selectedMode = modeKey;
-            document.querySelectorAll('.mode-card').forEach(m => m.classList.remove('selected'));
-            event.target.closest('.mode-card').classList.add('selected');
-            
-            updateStartButton();
-        }
-        
-        function updateStartButton() {
-            const btn = document.getElementById('start-game-btn');
-            if (selectedCity && selectedMode) {
-                btn.style.display = 'inline-block';
-                btn.textContent = `Start ${menuSystem.cities[selectedCity].name} - ${menuSystem.gameModes[selectedMode].name}`;
-            }
-        }
-        
+
         function startSelectedGame() {
-            if (selectedCity && selectedMode) {
-                startGame(selectedCity, selectedMode);
-            }
+            menuSystem.startSelectedGame();
         }
         
         function startGame(city, mode) {
@@ -372,88 +408,18 @@
             document.getElementById('ui-overlay').classList.add('active');
             document.getElementById('controls').classList.add('active');
             
-            // Initialize or restart game
             if (!window.game) {
                 window.game = new MiniMetro();
             }
             
-            // Initialize with selected city and mode
             game.initializeCity(city, mode);
             
-            // Apply city-specific features
             const cityData = menuSystem.cities[city];
             if (cityData) {
-                // Apply city color theme
                 document.body.style.setProperty('--city-color', cityData.color);
             }
             
             game.paused = false;
-        }
-        
-        function renderAchievements() {
-            const grid = document.getElementById('achievements-grid');
-            grid.innerHTML = '';
-            
-            Object.entries(menuSystem.achievements).forEach(([key, achievement]) => {
-                const card = document.createElement('div');
-                card.className = 'achievement-card' + (achievement.unlocked ? ' unlocked' : '');
-                
-                const progressPercent = (achievement.progress / achievement.target) * 100;
-                
-                card.innerHTML = `
-                    <div class="achievement-card-icon">${achievement.icon}</div>
-                    <div class="achievement-info">
-                        <div class="achievement-card-name">${achievement.name}</div>
-                        <div class="achievement-card-description">${achievement.description}</div>
-                        <div class="achievement-progress">
-                            <div class="achievement-progress-bar" style="width: ${progressPercent}%"></div>
-                        </div>
-                    </div>
-                `;
-                
-                grid.appendChild(card);
-            });
-        }
-        
-        function updateStatistics() {
-            let totalPassengers = 0;
-            let citiesCompleted = 0;
-            let bestScore = 0;
-            
-            Object.values(menuSystem.cities).forEach(city => {
-                Object.values(city.highscores).forEach(score => {
-                    totalPassengers += score;
-                    if (score > bestScore) bestScore = score;
-                    if (score > 500) citiesCompleted++;
-                });
-            });
-            
-            document.getElementById('total-passengers').textContent = totalPassengers;
-            document.getElementById('cities-completed').textContent = citiesCompleted;
-            document.getElementById('best-score').textContent = bestScore;
-            
-            // Mock leaderboard
-            const leaderboard = [
-                { rank: 1, name: 'Player 1', score: 2847 },
-                { rank: 2, name: 'Player 2', score: 2341 },
-                { rank: 3, name: 'Player 3', score: 1923 },
-                { rank: 4, name: 'You', score: bestScore },
-                { rank: 5, name: 'Player 5', score: 1102 }
-            ];
-            
-            const leaderboardContainer = document.getElementById('leaderboard-entries');
-            leaderboardContainer.innerHTML = '';
-            
-            leaderboard.sort((a, b) => b.score - a.score).forEach((entry, index) => {
-                const div = document.createElement('div');
-                div.className = 'leaderboard-entry';
-                div.innerHTML = `
-                    <span class="leaderboard-rank">#${index + 1}</span>
-                    <span class="leaderboard-name">${entry.name}</span>
-                    <span class="leaderboard-score">${entry.score}</span>
-                `;
-                leaderboardContainer.appendChild(div);
-            });
         }
     </script>
 </body>
