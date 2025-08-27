@@ -1,4 +1,67 @@
 // Realistic city configurations for Mini Metro
+
+/**
+ * @typedef {object} Point
+ * @property {number} x - The x-coordinate, as a fraction of the canvas width.
+ * @property {number} y - The y-coordinate, as a fraction of the canvas height.
+ */
+
+/**
+ * @typedef {object} River
+ * @property {string} name - The name of the river.
+ * @property {string} type - The type of river path ('curve', 'straight', 'meander').
+ * @property {number} width - The width of the river in pixels.
+ * @property {Point[]} points - An array of points that define the river's path.
+ */
+
+/**
+ * @typedef {object} Island
+ * @property {string} name - The name of the island.
+ * @property {number} x - The x-coordinate of the island's center.
+ * @property {number} y - The y-coordinate of the island's center.
+ * @property {number} width - The width of the island.
+ * @property {number} height - The height of the island.
+ * @property {string} shape - The shape of the island ('ellipse', 'rect').
+ * @property {boolean} [isLand=false] - Whether the island is land (true) or a body of water (false).
+ */
+
+/**
+ * @typedef {object} SpawnZone
+ * @property {string} name - The name of the spawn zone.
+ * @property {number} x - The x-coordinate of the top-left corner of the zone.
+ * @property {number} y - The y-coordinate of the top-left corner of the zone.
+ * @property {number} w - The width of the zone.
+ * @property {number} h - The height of the zone.
+ */
+
+/**
+ * @typedef {object} Landmark
+ * @property {string} name - The name of the landmark.
+ * @property {number} x - The x-coordinate of the landmark.
+ * @property {number} y - The y-coordinate of the landmark.
+ */
+
+/**
+ * @typedef {object} CityConfig
+ * @property {string} name - The name of the city.
+ * @property {string} subtitle - A subtitle for the city.
+ * @property {string} primaryColor - The primary color for the city's UI elements.
+ * @property {string} backgroundColor - The background color of the map.
+ * @property {string} waterColor - The color of water bodies.
+ * @property {River[]} [rivers] - An array of river configurations.
+ * @property {Island[]} [islands] - An array of island configurations.
+ * @property {SpawnZone[]} spawnZones - An array of zones where stations can spawn.
+ * @property {Landmark[]} [landmarks] - An array of decorative landmarks.
+ * @property {number} initialBridges - The number of bridges the player starts with.
+ * @property {number} bridgesPerWeek - The number of additional bridges awarded each week.
+ * @property {object} [water] - Configuration for large water bodies like bays.
+ */
+
+/**
+ * A collection of city configurations for the game.
+ * Each key is a city identifier, and the value is a `CityConfig` object.
+ * @type {Object.<string, CityConfig>}
+ */
 const CityMaps = {
     london: {
         name: 'LONDON',

@@ -1,10 +1,19 @@
+/**
+ * Manages the game's UI, state, and player progress outside of active gameplay.
+ */
 class MenuSystem {
     constructor() {
+        /** @type {string} */
         this.currentScreen = 'main'; // main, city-select, game, stats, achievements
+        /** @type {string|null} */
         this.selectedCity = null;
+        /** @type {string} */
         this.selectedMode = 'normal';
         
-        // City data
+        /**
+         * Data for all cities available in the menu.
+         * @type {object}
+         */
         this.cities = {
             london: {
                 name: 'London',
@@ -77,7 +86,10 @@ class MenuSystem {
             }
         };
         
-        // Game modes
+        /**
+         * Data for all available game modes.
+         * @type {object}
+         */
         this.gameModes = {
             normal: {
                 name: 'Normal',
@@ -107,7 +119,10 @@ class MenuSystem {
             }
         };
         
-        // Achievements
+        /**
+         * Data for all achievements in the game.
+         * @type {object}
+         */
         this.achievements = {
             london_500: {
                 name: 'London Commuter',
@@ -159,7 +174,10 @@ class MenuSystem {
             }
         };
         
-        // Daily challenge
+        /**
+         * Data for the daily challenge.
+         * @type {object}
+         */
         this.dailyChallenge = {
             city: 'london',
             seed: this.getDailySeed(),
@@ -172,11 +190,18 @@ class MenuSystem {
         this.loadGameData();
     }
     
+    /**
+     * Generates a seed for the daily challenge based on the current date.
+     * @returns {string} The daily seed string.
+     */
     getDailySeed() {
         const today = new Date();
         return `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
     }
     
+    /**
+     * Loads game data from localStorage.
+     */
     loadGameData() {
         const savedData = localStorage.getItem('miniMetroSave');
         if (savedData) {
@@ -207,6 +232,9 @@ class MenuSystem {
         this.checkUnlocks();
     }
     
+    /**
+     * Saves the current game data to localStorage.
+     */
     saveGameData() {
         const saveData = {
             cities: this.cities,
@@ -218,6 +246,9 @@ class MenuSystem {
         localStorage.setItem('miniMetroSave', JSON.stringify(saveData));
     }
     
+    /**
+     * Checks for and applies any new unlocks based on achievements.
+     */
     checkUnlocks() {
         // Check city unlocks based on achievements
         Object.keys(this.cities).forEach(cityKey => {
@@ -236,6 +267,11 @@ class MenuSystem {
         });
     }
     
+    /**
+     * Updates the progress of an achievement.
+     * @param {string} achievementId - The ID of the achievement to update.
+     * @param {number} progress - The new progress value.
+     */
     updateAchievement(achievementId, progress) {
         const achievement = this.achievements[achievementId];
         if (!achievement || achievement.unlocked) return;
@@ -251,6 +287,10 @@ class MenuSystem {
         this.saveGameData();
     }
     
+    /**
+     * Displays a notification for an unlocked achievement.
+     * @param {object} achievement - The achievement that was unlocked.
+     */
     showAchievementNotification(achievement) {
         const notification = document.createElement('div');
         notification.className = 'achievement-notification';
@@ -276,6 +316,13 @@ class MenuSystem {
         }, 3000);
     }
     
+    /**
+     * Updates the high score for a given city and mode.
+     * @param {string} city - The city key.
+     * @param {string} mode - The game mode.
+     * @param {number} score - The new score.
+     * @returns {boolean} True if a new high score was set, false otherwise.
+     */
     updateHighscore(city, mode, score) {
         if (this.cities[city] && this.cities[city].highscores[mode] < score) {
             this.cities[city].highscores[mode] = score;
@@ -285,6 +332,11 @@ class MenuSystem {
         return false;
     }
     
+    /**
+     * Starts the game for a selected city and mode.
+     * @param {string} city - The city key.
+     * @param {string} mode - The game mode.
+     */
     startGame(city, mode) {
         this.selectedCity = city;
         this.selectedMode = mode;
@@ -296,22 +348,37 @@ class MenuSystem {
         }
     }
     
+    /**
+     * Shows the main menu screen.
+     */
     showMainMenu() {
         this.currentScreen = 'main';
     }
     
+    /**
+     * Shows the city selection screen.
+     */
     showCitySelect() {
         this.currentScreen = 'city-select';
     }
     
+    /**
+     * Shows the achievements screen.
+     */
     showAchievements() {
         this.currentScreen = 'achievements';
     }
     
+    /**
+     * Shows the statistics screen.
+     */
     showStatistics() {
         this.currentScreen = 'statistics';
     }
     
+    /**
+     * Starts the daily challenge or shows the leaderboard if already played.
+     */
     showDailyChallenge() {
         if (!this.dailyChallenge.played) {
             this.startGame('london', 'daily');
@@ -324,27 +391,44 @@ class MenuSystem {
     }
 }
 
-// Audio System
+/**
+ * Manages all audio for the game, including procedural sound effects and music.
+ */
 class AudioSystem {
     constructor() {
+        /** @type {AudioContext} */
         this.context = new (window.AudioContext || window.webkitAudioContext)();
+        /** @type {number} */
         this.masterVolume = 0.5;
+        /** @type {number} */
         this.musicVolume = 0.7;
+        /** @type {number} */
         this.sfxVolume = 0.8;
         
+        /**
+         * Musical scales for procedural audio generation.
+         * @type {object}
+         */
         this.scales = {
             major: [0, 2, 4, 5, 7, 9, 11],
             minor: [0, 2, 3, 5, 7, 8, 10],
             pentatonic: [0, 2, 4, 7, 9]
         };
         
+        /** @type {string} */
         this.currentScale = 'pentatonic';
+        /** @type {number} */
         this.baseFrequency = 220; // A3
         
+        /** @type {Map<number, object[]>} */
         this.lineSequences = new Map();
+        /** @type {boolean} */
         this.isPlaying = false;
     }
     
+    /**
+     * Initializes the audio system, resuming the AudioContext on user interaction.
+     */
     init() {
         // Initialize audio on first user interaction
         document.addEventListener('click', () => {
@@ -354,6 +438,12 @@ class AudioSystem {
         }, { once: true });
     }
     
+    /**
+     * Plays a single audio note.
+     * @param {number} frequency - The frequency of the note in Hz.
+     * @param {number} [duration=0.1] - The duration of the note in seconds.
+     * @param {number} [volume=0.5] - The volume of the note.
+     */
     playNote(frequency, duration = 0.1, volume = 0.5) {
         if (!this.isPlaying) return;
         
@@ -375,6 +465,11 @@ class AudioSystem {
         oscillator.stop(this.context.currentTime + duration);
     }
     
+    /**
+     * Gets the frequency for a station based on its index.
+     * @param {number} stationIndex - The index of the station.
+     * @returns {number} The frequency of the note for the station.
+     */
     getFrequencyForStation(stationIndex) {
         const scale = this.scales[this.currentScale];
         const note = scale[stationIndex % scale.length];
@@ -382,6 +477,10 @@ class AudioSystem {
         return this.baseFrequency * Math.pow(2, (note + octave * 12) / 12);
     }
     
+    /**
+     * Plays a sound effect for a specific station type.
+     * @param {string} stationType - The type of the station.
+     */
     playStationSound(stationType) {
         const frequencies = {
             circle: 440,
@@ -397,6 +496,10 @@ class AudioSystem {
         this.playNote(frequencies[stationType] || 440, 0.15, 0.3);
     }
     
+    /**
+     * Plays a sound effect for a passenger action.
+     * @param {string} action - The action ('board' or 'alight').
+     */
     playPassengerSound(action) {
         if (action === 'board') {
             this.playNote(880, 0.05, 0.2);
@@ -405,10 +508,16 @@ class AudioSystem {
         }
     }
     
+    /**
+     * Plays a sound effect for drawing a line.
+     */
     playLineDrawSound() {
         this.playNote(330, 0.1, 0.2);
     }
     
+    /**
+     * Plays a sound effect for an upgrade.
+     */
     playUpgradeSound() {
         const notes = [440, 554, 659];
         notes.forEach((freq, i) => {
@@ -416,16 +525,27 @@ class AudioSystem {
         });
     }
     
+    /**
+     * Starts the game's procedural music.
+     */
     startGameMusic() {
         this.isPlaying = true;
         // Procedural music based on game state would go here
     }
     
+    /**
+     * Stops the game's music.
+     */
     stopGameMusic() {
         this.isPlaying = false;
         this.lineSequences.clear();
     }
     
+    /**
+     * Updates the musical sequence for a line.
+     * @param {number} lineId - The ID of the line.
+     * @param {object[]} stations - The array of stations on the line.
+     */
     updateLineSequence(lineId, stations) {
         // Update the musical sequence for a line based on its stations
         this.lineSequences.set(lineId, stations);
