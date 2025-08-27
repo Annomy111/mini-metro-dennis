@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mini Metro - Ultimate Edition</title>
+    
+    <!-- D3.js and TopoJSON -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #F4F4F4;
+            color: #000;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Loading Screen */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #F4F4F4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+        
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: #000;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #DDD;
+            border-top: 4px solid #000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Main Menu - 60s Tube Design */
+        #main-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #FFF8F0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+        
+        /* Animated Tube Map Background */
+        .tube-map-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+        
+        .tube-line {
+            stroke-width: 8;
+            fill: none;
+            stroke-linecap: round;
+            animation: drawLine 3s ease-out forwards;
+        }
+        
+        @keyframes drawLine {
+            from {
+                stroke-dasharray: 2000;
+                stroke-dashoffset: 2000;
+            }
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+        
+        .station-dot {
+            animation: fadeIn 0.5s ease-out forwards;
+            animation-delay: 2s;
+            opacity: 0;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        #main-menu.hidden {
+            transform: translateY(-100%);
+        }
+        
+        .menu-content {
+            text-align: center;
+            color: #000;
+        }
+        
+        .game-title {
+            font-size: 72px;
+            font-weight: 700;
+            letter-spacing: -2px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            background: #DC241F;
+            color: #FFF;
+            padding: 20px 50px;
+            border-radius: 50px;
+            box-shadow: 0 8px 24px rgba(220, 36, 31, 0.3);
+            display: inline-block;
+            animation: titleSlideDown 1s ease-out;
+            position: relative;
+        }
+        
+        .game-title::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: #FFF;
+            border-radius: 50%;
+        }
+        
+        .game-title::after {
+            content: '';
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: #FFF;
+            border-radius: 50%;
+        }
+        
+        @keyframes titleSlideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .game-subtitle {
+            font-size: 18px;
+            letter-spacing: 8px;
+            margin-bottom: 60px;
+            text-transform: uppercase;
+            color: #333;
+            font-weight: 300;
+            animation: subtitleFade 1.5s ease-out;
+            animation-delay: 0.5s;
+            animation-fill-mode: both;
+        }
+        
+        @keyframes subtitleFade {
+            from {
+                opacity: 0;
+                letter-spacing: 12px;
+            }
+            to {
+                opacity: 1;
+                letter-spacing: 8px;
+            }
+        }
+        
+        .menu-buttons {
+            display: flex;
+            gap: 30px;
+            animation: buttonsSlideUp 1s ease-out;
+            animation-delay: 1s;
+            animation-fill-mode: both;
+        }
+        
+        @keyframes buttonsSlideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .menu-button {
+            padding: 20px 45px;
+            background: #FFF;
+            border: 4px solid #000;
+            color: #000;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            border-radius: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .menu-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: translateY(-50%);
+            transition: left 0.5s;
+        }
+        
+        .menu-button:hover::before {
+            left: 100%;
+        }
+        
+        .menu-button:first-child {
+            border-color: #0019A8;
+            position: relative;
+        }
+        
+        .menu-button:first-child::after {
+            content: '●';
+            position: absolute;
+            left: 20px;
+            color: #0019A8;
+        }
+        
+        .menu-button:last-child {
+            border-color: #007D32;
+            position: relative;
+        }
+        
+        .menu-button:last-child::after {
+            content: '●';
+            position: absolute;
+            left: 20px;
+            color: #007D32;
+        }
+        
+        .menu-button:hover:first-child {
+            background: #0019A8;
+            color: #FFF;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 25, 168, 0.3);
+        }
+        
+        .menu-button:hover:last-child {
+            background: #007D32;
+            color: #FFF;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 125, 50, 0.3);
+        }
+        
+        .menu-button:active {
+            transform: translateY(0);
+        }
+        
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 42px;
+                padding: 15px 30px;
+            }
+            
+            .game-subtitle {
+                font-size: 14px;
+                letter-spacing: 4px;
+                margin-bottom: 40px;
+            }
+            
+            .menu-buttons {
+                flex-direction: column;
+                gap: 15px;
+                align-items: center;
+            }
+            
+            .menu-button {
+                width: 220px;
+                padding: 18px 35px;
+                font-size: 16px;
+            }
+            
+            .tube-map-bg {
+                transform: scale(0.8);
+            }
+            
+            .city-panel {
+                width: 90%;
+                bottom: 10px;
+                left: 5%;
+                right: 5%;
+            }
+            
+            #sound-toggle {
+                width: 45px;
+                height: 45px;
+                bottom: 15px;
+                right: 15px;
+            }
+            
+            /* Game UI for mobile */
+            .flip-clock {
+                transform: scale(0.65);
+                transform-origin: top right;
+                right: -10px !important;
+                top: -5px !important;
+            }
+            
+            .score-display {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+            
+            .controls {
+                transform: scale(0.85);
+                transform-origin: bottom left;
+                left: -5px !important;
+                bottom: -5px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 32px;
+                padding: 10px 20px;
+            }
+            
+            .menu-button {
+                width: 180px;
+                font-size: 14px;
+            }
+            
+            .flip-clock {
+                transform: scale(0.5);
+                transform-origin: top right;
+                right: -15px !important;
+                top: -10px !important;
+            }
+            
+            .controls {
+                transform: scale(0.7);
+                transform-origin: bottom left;
+                left: -10px !important;
+                bottom: -10px !important;
+            }
+            
+            .score-display {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+        
+        /* Touch feedback */
+        @media (hover: none) {
+            .menu-button:active {
+                transform: scale(0.98);
+            }
+        }
+        
+        /* Map Container */
+        #map-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #F4F4F4;
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #world-map {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            background: #F4F4F4;
+        }
+        
+        #world-map:active {
+            cursor: grabbing;
+        }
+        
+        /* Map Styles - Hide countries for tube map style */
+        .country {
+            display: none;
+        }
+        
+        .graticule {
+            fill: none;
+            stroke: #E0E0E0;
+            stroke-width: 1;
+            stroke-dasharray: 2, 4;
+        }
+        
+        .sphere {
+            fill: #F4F4F4;
+        }
+        
+        .city {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .city-dot {
+            fill: #FFF;
+            stroke: #000;
+            stroke-width: 2;
+        }
+        
+        .city-dot.unlocked {
+            fill: #FFF;
+            stroke: #000;
+            stroke-width: 2;
+        }
+        
+        .city-dot.locked {
+            fill: #DDD;
+            stroke: #999;
+            opacity: 0.5;
+        }
+        
+        .city-dot.selected {
+            fill: #000;
+            stroke: #000;
+            stroke-width: 3;
+            r: 8;
+        }
+        
+        /* Remove pulse animation for cleaner tube map style */
+        
+        .city-label {
+            fill: #000;
+            font-size: 10px;
+            font-weight: 400;
+            text-anchor: middle;
+            pointer-events: none;
+            font-family: 'Helvetica Neue', Helvetica, sans-serif;
+        }
+        
+        .city-connection {
+            stroke: #000;
+            stroke-width: 3;
+            opacity: 1;
+            fill: none;
+        }
+        
+        /* Remove dash animation for cleaner look */
+        
+        /* UI Overlay */
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #FFF;
+            border: 2px solid #000;
+            color: #000;
+            font-size: 14px;
+            font-weight: 400;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+        
+        .back-button:hover {
+            background: #000;
+            color: #FFF;
+        }
+        
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        
+        .zoom-button {
+            width: 40px;
+            height: 40px;
+            background: #FFF;
+            border: 2px solid #000;
+            color: #000;
+            font-size: 20px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .zoom-button:hover {
+            background: #000;
+            color: #FFF;
+        }
+        
+        /* City Info Panel */
+        .city-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 280px;
+            background: #FFF;
+            border: 2px solid #000;
+            padding: 20px;
+            pointer-events: auto;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .city-panel.visible {
+            transform: translateX(0);
+        }
+        
+        .city-panel h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #000;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+        
+        .city-panel .difficulty {
+            color: #000;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .city-panel .stats {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #DDD;
+        }
+        
+        .play-button {
+            width: 100%;
+            padding: 12px;
+            background: #FFF;
+            border: 2px solid #000;
+            color: #000;
+            font-size: 14px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+        
+        .play-button:hover:not(:disabled) {
+            background: #000;
+            color: #FFF;
+        }
+        
+        .play-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Mode Selection */
+        #mode-select {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #F4F4F4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        #mode-select.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .mode-container {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .mode-card {
+            background: #FFF;
+            border: 2px solid #000;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 200px;
+        }
+        
+        .mode-card:hover {
+            background: #000;
+            color: #FFF;
+        }
+        
+        .mode-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .mode-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .mode-desc {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        /* Mobile Mode Selection */
+        @media (max-width: 768px) {
+            .mode-container {
+                flex-direction: column;
+                gap: 20px;
+                padding: 20px;
+                width: 90%;
+                max-width: 350px;
+            }
+            
+            .mode-card {
+                width: 100%;
+                padding: 25px;
+                min-width: unset;
+            }
+            
+            .mode-icon {
+                font-size: 48px;
+                margin-bottom: 15px;
+            }
+            
+            .mode-title {
+                font-size: 20px;
+                margin-bottom: 8px;
+            }
+            
+            .mode-desc {
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .mode-container {
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .mode-card {
+                padding: 20px;
+            }
+            
+            .mode-icon {
+                font-size: 40px;
+                margin-bottom: 10px;
+            }
+            
+            .mode-title {
+                font-size: 18px;
+            }
+            
+            .mode-desc {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>Mini Metro für Dennis</h2>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu">
+        <!-- Animated Tube Map Background -->
+        <svg class="tube-map-bg" viewBox="0 0 1200 700">
+            <!-- Background Lines -->
+            <path class="tube-line" stroke="#DC241F" d="M100,350 L400,350 L600,200 L900,200"/>
+            <path class="tube-line" stroke="#0019A8" d="M200,500 L500,500 L700,350 L1000,350" style="animation-delay: 0.5s"/>
+            <path class="tube-line" stroke="#FFD329" d="M150,200 L350,200 L550,400 L850,400" style="animation-delay: 1s"/>
+            <path class="tube-line" stroke="#007D32" d="M300,100 L500,300 L800,300 L1100,500" style="animation-delay: 1.5s"/>
+            
+            <!-- Station Dots -->
+            <circle class="station-dot" cx="400" cy="350" r="12" fill="#FFF" stroke="#DC241F" stroke-width="3"/>
+            <circle class="station-dot" cx="600" cy="200" r="12" fill="#FFF" stroke="#DC241F" stroke-width="3"/>
+            <circle class="station-dot" cx="500" cy="500" r="12" fill="#FFF" stroke="#0019A8" stroke-width="3"/>
+            <circle class="station-dot" cx="700" cy="350" r="12" fill="#FFF" stroke="#0019A8" stroke-width="3"/>
+            <circle class="station-dot" cx="550" cy="400" r="12" fill="#FFF" stroke="#FFD329" stroke-width="3"/>
+            <circle class="station-dot" cx="500" cy="300" r="12" fill="#FFF" stroke="#007D32" stroke-width="3"/>
+        </svg>
+        
+        <div class="menu-content">
+            <h1 class="game-title">MINI METRO</h1>
+            <p class="game-subtitle">MIND THE GAP</p>
+            <div class="menu-buttons">
+                <button class="menu-button" onclick="app.playSound('select'); app.startGame()">PLAY</button>
+                <button class="menu-button" onclick="app.playSound('select'); app.startDaily()">DAILY</button>
+            </div>
+        </div>
+        
+        <!-- Sound Toggle Button -->
+        <button id="sound-toggle" onclick="app.toggleSound()" style="
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #FFF;
+            border: 3px solid #333;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1001;
+        ">
+            🔊
+        </button>
+    </div>
+
+    <!-- Map Container -->
+    <div id="map-container">
+        <!-- World map will be drawn here by D3 -->
+    </div>
+
+    <!-- UI Overlay -->
+    <div id="ui-overlay">
+        <button class="back-button" onclick="app.backToMenu()" style="display: none;">← BACK</button>
+        
+        <div class="zoom-controls">
+            <button class="zoom-button" onclick="app.zoomIn()">+</button>
+            <button class="zoom-button" onclick="app.zoomReset()">⟲</button>
+            <button class="zoom-button" onclick="app.zoomOut()">−</button>
+        </div>
+        
+        <div class="city-panel" id="city-panel">
+            <h2 id="city-name">Select a City</h2>
+            <div class="difficulty" id="city-difficulty">Difficulty: ●●●○○</div>
+            <div class="stats">
+                <div class="stat-row">
+                    <span>Target</span>
+                    <span id="city-target">-</span>
+                </div>
+                <div class="stat-row">
+                    <span>Highscore</span>
+                    <span id="city-highscore">-</span>
+                </div>
+                <div class="stat-row">
+                    <span>Status</span>
+                    <span id="city-status">Locked</span>
+                </div>
+            </div>
+            <button class="play-button" id="play-btn" disabled onclick="app.showModes()">SELECT CITY</button>
+        </div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="mode-select">
+        <div class="mode-container">
+            <div class="mode-card" onclick="app.launchGame('normal')">
+                <div class="mode-icon">🎯</div>
+                <div class="mode-title">NORMAL</div>
+                <div class="mode-desc">Build an efficient network</div>
+            </div>
+            <div class="mode-card" onclick="app.launchGame('endless')">
+                <div class="mode-icon">∞</div>
+                <div class="mode-title">ENDLESS</div>
+                <div class="mode-desc">Relax without pressure</div>
+            </div>
+            <div class="mode-card" onclick="app.launchGame('extreme')">
+                <div class="mode-icon">⚡</div>
+                <div class="mode-title">EXTREME</div>
+                <div class="mode-desc">No room for error</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Canvas (hidden initially) -->
+    <canvas id="gameCanvas" style="display: none; touch-action: none; -webkit-tap-highlight-color: transparent; position: fixed; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+    
+    <!-- Game UI Overlay -->
+    <div id="game-ui-overlay" style="display: none;">
+        <style>
+            #game-ui-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 1000;
+                pointer-events: none;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                padding: 20px;
+            }
+            
+            /* Mobile game UI adjustments */
+            @media (max-width: 768px) {
+                #game-ui-overlay {
+                    padding: 10px;
+                }
+                
+                #game-ui-overlay > div:first-child {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 10px;
+                }
+                
+                #game-ui-overlay .flip-clock {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    transform: scale(0.6);
+                    transform-origin: top right;
+                }
+                
+                #game-ui-overlay .score-display {
+                    position: relative;
+                    z-index: 1001;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                #game-ui-overlay {
+                    padding: 5px;
+                }
+                
+                #game-ui-overlay .flip-clock {
+                    transform: scale(0.45);
+                    top: 5px;
+                    right: 5px;
+                }
+                
+                #game-ui-overlay .score-display {
+                    font-size: 14px;
+                    padding: 8px 12px;
+                }
+            }
+            
+            /* Flip Clock Styles */
+            .flip-clock {
+                background: #1a1a1a;
+                border-radius: 8px;
+                padding: 15px 20px;
+                box-shadow: 
+                    0 10px 30px rgba(0,0,0,0.5),
+                    inset 0 1px 0 rgba(255,255,255,0.1);
+                pointer-events: auto;
+                display: inline-flex;
+                gap: 15px;
+                align-items: center;
+                border: 3px solid #333;
+                position: relative;
+            }
+            
+            .flip-unit {
+                position: relative;
+                display: inline-block;
+                perspective: 300px;
+            }
+            
+            .flip-card {
+                position: relative;
+                min-width: 50px;
+                text-align: center;
+                transform-style: preserve-3d;
+            }
+            
+            .flip-card-inner {
+                position: relative;
+                width: 100%;
+                height: 100%;
+            }
+            
+            .flip-top, .flip-bottom {
+                position: relative;
+                width: 100%;
+                height: 40px;
+                overflow: hidden;
+                color: #FFF;
+                font-family: 'Courier New', monospace;
+                font-size: 32px;
+                font-weight: bold;
+                text-align: center;
+                padding: 0 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .flip-top {
+                background: linear-gradient(to bottom, #444 0%, #333 100%);
+                border-radius: 4px 4px 0 0;
+                border-bottom: 1px solid #000;
+                box-shadow: 
+                    inset 0 2px 4px rgba(0,0,0,0.6),
+                    0 1px 0 rgba(255,255,255,0.12);
+            }
+            
+            .flip-bottom {
+                background: linear-gradient(to bottom, #333 0%, #222 100%);
+                border-radius: 0 0 4px 4px;
+                box-shadow: 
+                    inset 0 -2px 4px rgba(0,0,0,0.8),
+                    0 1px 2px rgba(0,0,0,0.5);
+            }
+            
+            .flip-top span {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-shadow: 0 -1px 0 rgba(0,0,0,0.5);
+                height: 40px;
+                margin-top: 0;
+            }
+            
+            .flip-bottom span {
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                text-shadow: 0 -1px 0 rgba(0,0,0,0.5);
+                height: 80px;
+                margin-top: -40px;
+            }
+            
+            /* Flip animation */
+            .flip-card.flipping .flip-top {
+                animation: flipTop 0.6s ease-in-out;
+                transform-origin: bottom;
+            }
+            
+            .flip-card.flipping .flip-bottom {
+                animation: flipBottom 0.6s ease-in-out;
+                transform-origin: top;
+            }
+            
+            @keyframes flipTop {
+                0% { transform: rotateX(0deg); }
+                50% { transform: rotateX(-90deg); }
+                50.01% { transform: rotateX(90deg); }
+                100% { transform: rotateX(0deg); }
+            }
+            
+            @keyframes flipBottom {
+                0% { transform: rotateX(0deg); }
+                50% { transform: rotateX(90deg); }
+                100% { transform: rotateX(0deg); }
+            }
+            
+            /* Middle split line */
+            .flip-card::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 50%;
+                height: 1px;
+                background: #000;
+                z-index: 20;
+                box-shadow: 0 1px 0 rgba(255,255,255,0.05);
+            }
+            
+            .flip-label {
+                color: #888;
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-bottom: 5px;
+                text-align: center;
+            }
+            
+            /* Mobile-specific game UI fixes */
+            @media (max-width: 768px) and (orientation: portrait) {
+                #game-ui-overlay {
+                    pointer-events: none !important;
+                }
+                
+                .game-ui-top {
+                    flex-direction: row !important;
+                    justify-content: space-between !important;
+                    align-items: center !important;
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    padding: 6px 10px !important;
+                    background: rgba(26, 26, 26, 0.88) !important;
+                    backdrop-filter: blur(8px) !important;
+                    -webkit-backdrop-filter: blur(8px) !important;
+                    height: auto !important;
+                    box-shadow: 0 1px 8px rgba(0,0,0,0.25) !important;
+                }
+                
+                /* Hide desktop clock on mobile */
+                .desktop-clock-units {
+                    display: none !important;
+                }
+                
+                /* Show mobile clock */
+                .mobile-clock-display {
+                    display: flex !important;
+                    align-items: center !important;
+                    gap: 6px !important;
+                    font-size: 18px !important;
+                    font-weight: 600 !important;
+                    color: #FFF !important;
+                    font-family: 'SF Mono', 'Monaco', monospace !important;
+                    letter-spacing: 0.5px !important;
+                }
+                
+                .clock-separator {
+                    color: #666 !important;
+                    font-size: 18px !important;
+                }
+                
+                #mobile-day {
+                    color: #FFD329 !important;
+                }
+                
+                #mobile-time {
+                    color: #FFF !important;
+                }
+                
+                .flip-clock {
+                    position: relative !important;
+                    top: auto !important;
+                    right: auto !important;
+                    transform: none !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    background: transparent !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    display: flex !important;
+                    align-items: center !important;
+                }
+                
+                .flip-label {
+                    display: none !important;
+                }
+                
+                .flip-separator {
+                    font-size: 18px !important;
+                    color: #666 !important;
+                    margin: 0 2px !important;
+                }
+                
+                .flip-unit {
+                    margin: 0 !important;
+                }
+                
+                .flip-card {
+                    min-width: unset !important;
+                    background: transparent !important;
+                }
+                
+                .flip-card[id="week-card"] {
+                    display: none !important;
+                }
+                
+                .flip-card[id="day-card"] {
+                    min-width: unset !important;
+                }
+                
+                .flip-top, .flip-bottom {
+                    font-size: 20px !important;
+                    height: 28px !important;
+                    padding: 0 6px !important;
+                    background: rgba(51, 51, 51, 0.8) !important;
+                    border: 1px solid rgba(255,255,255,0.1) !important;
+                    border-radius: 4px !important;
+                    min-width: 32px !important;
+                }
+                
+                .flip-top {
+                    border-bottom: 1px solid rgba(0,0,0,0.5) !important;
+                }
+                
+                .flip-bottom {
+                    display: none !important;
+                }
+                
+                .flip-top span, .flip-bottom span {
+                    font-size: 20px !important;
+                    font-family: 'SF Mono', 'Monaco', monospace !important;
+                }
+                
+                #day-top, #day-bottom {
+                    font-size: 16px !important;
+                    letter-spacing: 1px !important;
+                }
+                
+                /* Hide week unit completely on mobile */
+                .flip-unit:first-child {
+                    display: none !important;
+                }
+                
+                .score-display {
+                    position: relative !important;
+                    top: auto !important;
+                    left: auto !important;
+                    font-size: 16px !important;
+                    font-weight: 600 !important;
+                    padding: 5px 10px !important;
+                    z-index: 1002 !important;
+                    pointer-events: auto !important;
+                    background: rgba(255,255,255,0.95) !important;
+                    margin-left: 5px !important;
+                    border-radius: 16px !important;
+                    border: 2px solid #000 !important;
+                    color: #000 !important;
+                    min-width: 45px !important;
+                    text-align: center !important;
+                }
+                
+                .score-label {
+                    display: none !important;
+                }
+                
+                .game-ui-bottom {
+                    position: fixed !important;
+                    bottom: 10px !important;
+                    left: 10px !important;
+                    pointer-events: auto !important;
+                }
+                
+                .exit-button-game {
+                    font-size: 12px !important;
+                    padding: 8px 14px !important;
+                    pointer-events: auto !important;
+                    background: rgba(255,255,255,0.98) !important;
+                    border-radius: 20px !important;
+                    border: 2px solid #000 !important;
+                    font-weight: 600 !important;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .game-ui-top {
+                    padding: 6px !important;
+                }
+                
+                .flip-top, .flip-bottom {
+                    font-size: 18px !important;
+                    height: 26px !important;
+                    padding: 0 5px !important;
+                    min-width: 28px !important;
+                }
+                
+                .flip-separator {
+                    font-size: 16px !important;
+                }
+                
+                .score-display {
+                    font-size: 16px !important;
+                    padding: 5px 10px !important;
+                    min-width: 45px !important;
+                }
+                
+                .game-ui-bottom {
+                    bottom: 8px !important;
+                    left: 8px !important;
+                }
+                
+                .exit-button-game {
+                    font-size: 11px !important;
+                    padding: 7px 12px !important;
+                }
+            }
+            
+            .flip-separator {
+                color: #FFF;
+                font-size: 32px;
+                font-weight: bold;
+                padding: 0 5px;
+                align-self: center;
+            }
+            
+            .score-display {
+                background: #FFF;
+                border: 2px solid #000;
+                padding: 10px 20px;
+                font-size: 18px;
+                font-weight: 400;
+                font-family: 'Helvetica Neue', Helvetica, sans-serif;
+                pointer-events: auto;
+                display: inline-block;
+            }
+            
+            .exit-button-game {
+                padding: 10px 20px;
+                background: #FFF;
+                border: 2px solid #000;
+                color: #000;
+                font-weight: 400;
+                cursor: pointer;
+                pointer-events: auto;
+                text-transform: uppercase;
+                font-size: 14px;
+                transition: all 0.2s ease;
+                z-index: 1001;
+            }
+            
+            @media (max-width: 768px) {
+                .exit-button-game {
+                    padding: 8px 16px;
+                    font-size: 12px;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .exit-button-game {
+                    padding: 6px 12px;
+                    font-size: 11px;
+                }
+            }
+            
+            .exit-button-game:hover {
+                background: #000;
+                color: #FFF;
+            }
+        </style>
+        
+        <div class="game-ui-top" style="display: flex; justify-content: space-between; align-items: flex-start; position: relative;">
+            <!-- Score Panel -->
+            <div class="score-display">
+                <span id="score-value">0</span>
+                <span class="score-label" style="opacity: 0.6; margin-left: 8px;">PASSENGERS</span>
+            </div>
+            
+            <!-- Flip Clock -->
+            <div class="flip-clock">
+                <!-- Week -->
+                <div class="flip-unit">
+                    <div class="flip-label">WEEK</div>
+                    <div class="flip-card" id="week-card">
+                        <div class="flip-top"><span id="week-top">01</span></div>
+                        <div class="flip-bottom"><span id="week-bottom">01</span></div>
+                    </div>
+                </div>
+                
+                <!-- Mobile simplified clock -->
+                <div class="mobile-clock-display" style="display: none;">
+                    <span id="mobile-day">MON</span>
+                    <span class="clock-separator">·</span>
+                    <span id="mobile-time">06:00</span>
+                </div>
+                
+                <!-- Desktop flip clock -->
+                <div class="desktop-clock-units">
+                    <!-- Day -->
+                    <div class="flip-unit">
+                        <div class="flip-label">DAY</div>
+                        <div class="flip-card" id="day-card" style="min-width: 80px;">
+                            <div class="flip-top"><span id="day-top" style="font-size: 22px;">MON</span></div>
+                            <div class="flip-bottom"><span id="day-bottom" style="font-size: 22px;">MON</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flip-separator">·</div>
+                    
+                    <!-- Hours -->
+                    <div class="flip-unit">
+                        <div class="flip-label">HOUR</div>
+                        <div class="flip-card" id="hour-card">
+                            <div class="flip-top"><span id="hour-top">06</span></div>
+                            <div class="flip-bottom"><span id="hour-bottom">06</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flip-separator">:</div>
+                    
+                    <!-- Minutes -->
+                    <div class="flip-unit">
+                        <div class="flip-label">MIN</div>
+                        <div class="flip-card" id="minute-card">
+                            <div class="flip-top"><span id="minute-top">00</span></div>
+                            <div class="flip-bottom"><span id="minute-bottom">00</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom section with exit button -->
+        <div class="game-ui-bottom" style="display: flex; justify-content: flex-start; align-items: flex-end;">
+            <button class="exit-button-game" onclick="app.exitGame()">
+                ← EXIT TO MENU
+            </button>
+        </div>
+    </div>
+
+    <script src="city-maps.js"></script>
+    <script src="game-realistic.js"></script>
+    <script>
+        class UltimateMiniMetro {
+            constructor() {
+                this.worldData = null;
+                this.svg = null;
+                this.g = null;
+                this.projection = null;
+                this.path = null;
+                this.zoom = null;
+                this.selectedCity = null;
+                this.audio = null;
+                this.menuMusic = null;
+                this.soundEnabled = true;
+                
+                // Cities with schematic grid positions (tube map style)
+                // Using grid coordinates instead of GPS for cleaner layout
+                this.cities = [
+                    // Europe cluster
+                    { id: 'london', name: 'LONDON', gridX: 5, gridY: 3, line: 'red', unlocked: true, target: 750, highscore: 0, difficulty: 3 },
+                    { id: 'paris', name: 'PARIS', gridX: 5, gridY: 4, line: 'red', unlocked: true, target: 750, highscore: 0, difficulty: 3 },
+                    { id: 'berlin', name: 'BERLIN', gridX: 6, gridY: 3, line: 'red', unlocked: false, target: 850, highscore: 0, difficulty: 4, requires: 'paris' },
+                    { id: 'moscow', name: 'MOSCOW', gridX: 7, gridY: 2, line: 'red', unlocked: false, target: 950, highscore: 0, difficulty: 4, requires: 'tokyo' },
+                    
+                    // Americas cluster  
+                    { id: 'newyork', name: 'NEW YORK', gridX: 2, gridY: 4, line: 'blue', unlocked: true, target: 800, highscore: 0, difficulty: 4 },
+                    { id: 'rio', name: 'RIO', gridX: 3, gridY: 6, line: 'blue', unlocked: false, target: 900, highscore: 0, difficulty: 4, requires: 'newyork' },
+                    { id: 'mexico', name: 'MEXICO', gridX: 1, gridY: 5, line: 'blue', unlocked: false, target: 950, highscore: 0, difficulty: 4, requires: 'rio' },
+                    
+                    // Asia cluster
+                    { id: 'tokyo', name: 'TOKYO', gridX: 9, gridY: 4, line: 'green', unlocked: false, target: 900, highscore: 0, difficulty: 5, requires: 'london' },
+                    { id: 'seoul', name: 'SEOUL', gridX: 9, gridY: 3, line: 'green', unlocked: false, target: 950, highscore: 0, difficulty: 4, requires: 'tokyo' },
+                    { id: 'hongkong', name: 'HONG KONG', gridX: 8, gridY: 5, line: 'green', unlocked: false, target: 1000, highscore: 0, difficulty: 5, requires: 'singapore' },
+                    { id: 'singapore', name: 'SINGAPORE', gridX: 8, gridY: 6, line: 'green', unlocked: false, target: 850, highscore: 0, difficulty: 4, requires: 'sydney' },
+                    
+                    // Middle East/Africa cluster
+                    { id: 'dubai', name: 'DUBAI', gridX: 6, gridY: 5, line: 'yellow', unlocked: false, target: 900, highscore: 0, difficulty: 3, requires: 'berlin' },
+                    { id: 'cairo', name: 'CAIRO', gridX: 5, gridY: 5, line: 'yellow', unlocked: false, target: 850, highscore: 0, difficulty: 3, requires: 'moscow' },
+                    { id: 'mumbai', name: 'MUMBAI', gridX: 7, gridY: 5, line: 'yellow', unlocked: false, target: 1100, highscore: 0, difficulty: 5, requires: 'dubai' },
+                    
+                    // Oceania
+                    { id: 'sydney', name: 'SYDNEY', gridX: 9, gridY: 7, line: 'purple', unlocked: false, target: 800, highscore: 0, difficulty: 4, requires: 'newyork' }
+                ];
+                
+                // Don't init here, wait for DOM
+            }
+            
+            init() {
+                console.log('🚇 Ultimate Mini Metro initializing...');
+                // Setup audio
+                this.initAudio();
+                // Setup map immediately when called
+                this.hideLoading();
+                this.loadProgress();
+                // Don't setup map here - it's not displayed yet
+            }
+            
+            initAudio() {
+                // Initialize audio context
+                try {
+                    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioContext = new AudioContext();
+                    
+                    // Load and play menu music
+                    this.menuMusic = new Audio('menu-music.m4a');
+                    this.menuMusic.loop = true;
+                    this.menuMusic.volume = 0.5; // Set to 50% volume for background music
+                    
+                    // Start playing when menu is visible
+                    setTimeout(() => {
+                        this.playMenuMusic();
+                    }, 500);
+                    
+                    // Create click sound
+                    this.clickSound = this.createClickSound();
+                    
+                } catch (error) {
+                    console.log('Web Audio API not supported:', error);
+                }
+            }
+            
+            playMenuMusic() {
+                if (this.menuMusic && this.soundEnabled) {
+                    this.menuMusic.play().catch(e => {
+                        console.log('Autoplay prevented, waiting for user interaction');
+                        // Try again on first user interaction
+                        document.addEventListener('click', () => {
+                            this.menuMusic.play();
+                        }, { once: true });
+                    });
+                }
+            }
+            
+            stopMenuMusic() {
+                if (this.menuMusic) {
+                    // Fade out
+                    let volume = this.menuMusic.volume;
+                    const fadeOut = setInterval(() => {
+                        if (volume > 0.01) {
+                            volume -= 0.01;
+                            this.menuMusic.volume = volume;
+                        } else {
+                            clearInterval(fadeOut);
+                            this.menuMusic.pause();
+                            this.menuMusic.currentTime = 0;
+                            this.menuMusic.volume = 0.3;
+                        }
+                    }, 20);
+                }
+            }
+            
+            createClickSound() {
+                // Create a simple click sound with Web Audio API
+                return () => {
+                    if (!this.soundEnabled || !this.audioContext) return;
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.03, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.05);
+                    
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + 0.05);
+                };
+            }
+            
+            playSound(type) {
+                if (type === 'select' && this.clickSound) {
+                    this.clickSound();
+                }
+            }
+            
+            setupMap() {
+                console.log('Setting up world map with D3...');
+                this.loadWorldMap();
+            }
+            
+            loadWorldMap() {
+                // Create SVG
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                // Remove existing SVG if any
+                d3.select('#map-container').select('svg').remove();
+                
+                // Create new SVG
+                this.svg = d3.select('#map-container')
+                    .append('svg')
+                    .attr('width', width)
+                    .attr('height', height)
+                    .style('background', '#F4F4F4');
+                
+                // Add grid pattern
+                const defs = this.svg.append('defs');
+                const pattern = defs.append('pattern')
+                    .attr('id', 'grid')
+                    .attr('width', 40)
+                    .attr('height', 40)
+                    .attr('patternUnits', 'userSpaceOnUse');
+                    
+                pattern.append('line')
+                    .attr('x1', 0)
+                    .attr('y1', 0)
+                    .attr('x2', 0)
+                    .attr('y2', 40)
+                    .attr('stroke', '#E8E8E8')
+                    .attr('stroke-width', 0.5);
+                    
+                pattern.append('line')
+                    .attr('x1', 0)
+                    .attr('y1', 0)
+                    .attr('x2', 40)
+                    .attr('y2', 0)
+                    .attr('stroke', '#E8E8E8')
+                    .attr('stroke-width', 0.5);
+                    
+                // Add grid background
+                this.svg.append('rect')
+                    .attr('width', width)
+                    .attr('height', height)
+                    .attr('fill', 'url(#grid)')
+                    .attr('opacity', 0.3);
+                
+                // Setup projection
+                this.projection = d3.geoNaturalEarth1()
+                    .scale(200)
+                    .translate([width / 2, height / 2]);
+                    
+                this.path = d3.geoPath().projection(this.projection);
+                
+                // Create zoom behavior
+                this.zoom = d3.zoom()
+                    .scaleExtent([0.5, 8])
+                    .on('zoom', (event) => {
+                        this.g.attr('transform', event.transform);
+                    });
+                    
+                this.svg.call(this.zoom);
+                
+                // Create main group
+                this.g = this.svg.append('g');
+                
+                // Load world data
+                d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+                    .then(world => {
+                        // Draw countries with 60s style
+                        this.g.append('g')
+                            .selectAll('path')
+                            .data(topojson.feature(world, world.objects.countries).features)
+                            .enter()
+                            .append('path')
+                            .attr('d', this.path)
+                            .attr('fill', 'none')
+                            .attr('stroke', '#D0D0D0')
+                            .attr('stroke-width', 0.5)
+                            .attr('opacity', 0.6)
+                            .style('mix-blend-mode', 'multiply');
+                        
+                        // Add cities
+                        this.drawCities();
+                    })
+                    .catch(error => {
+                        console.error('Failed to load world map:', error);
+                        // Fallback to simple map
+                        this.drawFallbackMap();
+                    });
+            }
+            
+            drawCities() {
+                const cities = this.cities.map(city => ({
+                    ...city,
+                    // Convert to real coordinates
+                    coords: this.getCityCoordinates(city.id)
+                }));
+                
+                // Draw city markers
+                const cityGroups = this.g.selectAll('.city')
+                    .data(cities)
+                    .enter()
+                    .append('g')
+                    .attr('class', 'city')
+                    .attr('transform', d => {
+                        const coords = this.projection(d.coords);
+                        return `translate(${coords[0]}, ${coords[1]})`;
+                    });
+                    
+                // Add city circles with 60s style
+                cityGroups.append('circle')
+                    .attr('r', 8)
+                    .attr('fill', d => d.unlocked ? '#FFF' : '#F0F0F0')
+                    .attr('stroke', d => d.unlocked ? '#000' : '#AAA')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', d => d.unlocked ? 1 : 0.5)
+                    .style('cursor', d => d.unlocked ? 'pointer' : 'not-allowed')
+                    .on('click', (event, d) => {
+                        if (d.unlocked) this.selectCity(d);
+                    });
+                    
+                // Add city labels
+                cityGroups.append('text')
+                    .attr('y', 25)
+                    .attr('text-anchor', 'middle')
+                    .attr('font-size', '11px')
+                    .attr('font-family', 'Helvetica Neue, sans-serif')
+                    .attr('font-weight', '400')
+                    .attr('fill', d => d.unlocked ? '#000' : '#999')
+                    .text(d => d.name);
+            }
+            
+            getCityCoordinates(cityId) {
+                // Real world coordinates
+                const coords = {
+                    'london': [-0.1276, 51.5074],
+                    'paris': [2.3522, 48.8566],
+                    'berlin': [13.4050, 52.5200],
+                    'moscow': [37.6173, 55.7558],
+                    'newyork': [-74.0060, 40.7128],
+                    'rio': [-43.1729, -22.9068],
+                    'mexico': [-99.1332, 19.4326],
+                    'tokyo': [139.6503, 35.6762],
+                    'seoul': [126.9780, 37.5665],
+                    'hongkong': [114.1694, 22.3193],
+                    'singapore': [103.8198, 1.3521],
+                    'dubai': [55.2708, 25.2048],
+                    'cairo': [31.2357, 30.0444],
+                    'mumbai': [72.8777, 19.0760],
+                    'sydney': [151.2093, -33.8688]
+                };
+                return coords[cityId] || [0, 0];
+            }
+            
+            drawFallbackMap() {
+                console.log('Drawing fallback map without GeoJSON...');
+                // Clear and redraw with simple style
+                this.g.selectAll('*').remove();
+                
+                // Simple world outline
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                // Draw simple continents as rectangles (60s abstraction)
+                const continents = [
+                    {x: width * 0.45, y: height * 0.35, w: 150, h: 100, name: 'Europe'},
+                    {x: width * 0.2, y: height * 0.4, w: 120, h: 150, name: 'Americas'},
+                    {x: width * 0.7, y: height * 0.4, w: 180, h: 120, name: 'Asia'},
+                    {x: width * 0.55, y: height * 0.55, w: 100, h: 80, name: 'Africa'},
+                    {x: width * 0.75, y: height * 0.65, w: 80, h: 60, name: 'Oceania'}
+                ];
+                
+                this.g.selectAll('.continent')
+                    .data(continents)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y)
+                    .attr('width', d => d.w)
+                    .attr('height', d => d.h)
+                    .attr('fill', 'none')
+                    .attr('stroke', '#CCC')
+                    .attr('stroke-width', 1)
+                    .attr('rx', 10)
+                    .attr('opacity', 0.3);
+                    
+                // Add cities with simple positioning
+                this.drawSimpleCities();
+            }
+            
+            drawSimpleCities() {
+                // Simple city positioning without GeoJSON
+                
+                const gridSize = 100;
+                const offsetX = 150;
+                const offsetY = 100;
+                
+                // Line colors
+                const lineColors = {
+                    'red': '#DC241F',
+                    'blue': '#0019A8', 
+                    'green': '#007D32',
+                    'yellow': '#FFD329',
+                    'purple': '#9B0058'
+                };
+                
+                // Wait for SVG to be ready
+                const svg = document.getElementById('world-map');
+                if (!svg) {
+                    console.error('SVG element not found!');
+                    setTimeout(() => this.drawSimplifiedMap(), 100);
+                    return;
+                }
+                
+                // Get or create groups
+                let linesGroup = document.getElementById('tube-lines');
+                let citiesGroup = document.getElementById('cities');
+                
+                if (!linesGroup) {
+                    linesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    linesGroup.id = 'tube-lines';
+                    svg.appendChild(linesGroup);
+                }
+                
+                if (!citiesGroup) {
+                    citiesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    citiesGroup.id = 'cities';
+                    svg.appendChild(citiesGroup);
+                }
+                
+                // Clear existing content
+                linesGroup.innerHTML = '';
+                citiesGroup.innerHTML = '';
+                
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                // Draw cities with grid positioning
+                const cityGroups = this.g.selectAll('.city-simple')
+                    .data(this.cities)
+                    .enter()
+                    .append('g')
+                    .attr('class', 'city-simple')
+                    .attr('transform', d => {
+                        const x = 150 + d.gridX * 100;
+                        const y = 100 + d.gridY * 100;
+                        return `translate(${x}, ${y})`;
+                    });
+                    
+                // 60s style circles
+                cityGroups.append('circle')
+                    .attr('r', 8)
+                    .attr('fill', d => d.unlocked ? '#FFF' : '#F5F5F5')
+                    .attr('stroke', d => d.unlocked ? '#333' : '#CCC')
+                    .attr('stroke-width', d => d.unlocked ? 2 : 1)
+                    .attr('opacity', d => d.unlocked ? 1 : 0.4)
+                    .style('cursor', d => d.unlocked ? 'pointer' : 'default')
+                    .on('click', (event, d) => {
+                        if (d.unlocked) this.selectCity(d);
+                    });
+                    
+                // City names
+                cityGroups.append('text')
+                    .attr('y', 25)
+                    .attr('text-anchor', 'middle')
+                    .attr('font-size', '11px')
+                    .attr('font-family', 'Helvetica Neue, sans-serif')
+                    .attr('font-weight', '300')
+                    .attr('letter-spacing', '0.5px')
+                    .attr('fill', d => d.unlocked ? '#333' : '#999')
+                    .text(d => d.name);
+            }
+            
+            selectCity(cityId) {
+                const city = typeof cityId === 'string' ? 
+                    this.cities.find(c => c.id === cityId) : cityId;
+                    
+                if (!city || !city.unlocked) return;
+                
+                console.log('Selected city:', city.name);
+                this.selectedCity = city;
+                
+                // Update visual selection without D3
+                document.querySelectorAll('.city-marker').forEach(marker => {
+                    marker.style.fill = '#FFF';
+                    marker.style.strokeWidth = '2';
+                });
+                const selectedMarker = document.querySelector(`.city-station[data-city="${city.id}"] .city-marker`);
+                if (selectedMarker) {
+                    selectedMarker.style.fill = '#000';
+                    selectedMarker.style.strokeWidth = '3';
+                }
+                
+                // Update panel
+                document.getElementById('city-name').textContent = city.name;
+                document.getElementById('city-target').textContent = city.target;
+                document.getElementById('city-highscore').textContent = city.highscore || '-';
+                document.getElementById('city-status').textContent = city.unlocked ? 'Unlocked' : 'Locked';
+                
+                const difficulty = '●'.repeat(city.difficulty) + '○'.repeat(5 - city.difficulty);
+                document.getElementById('city-difficulty').textContent = `Difficulty: ${difficulty}`;
+                
+                const playBtn = document.getElementById('play-btn');
+                playBtn.disabled = false;
+                playBtn.textContent = `PLAY ${city.name}`;
+                
+                // Show panel
+                document.getElementById('city-panel').classList.add('visible');
+            }
+            
+            startGame() {
+                console.log('Starting game...');
+                document.getElementById('main-menu').classList.add('hidden');
+                const mapContainer = document.getElementById('map-container');
+                mapContainer.style.display = 'block';
+                mapContainer.classList.add('active');
+                document.querySelector('.back-button').style.display = 'block';
+                
+                // Setup the world map
+                console.log('Drawing world map...');
+                this.setupMap();
+            }
+            
+            startDaily() {
+                this.selectedCity = this.cities[0]; // London
+                this.launchGame('daily');
+            }
+            
+            backToMenu() {
+                document.getElementById('main-menu').classList.remove('hidden');
+                document.getElementById('map-container').style.display = 'none';
+                document.querySelector('.back-button').style.display = 'none';
+                document.getElementById('city-panel').classList.remove('visible');
+            }
+            
+            showModes() {
+                if (!this.selectedCity) return;
+                document.getElementById('mode-select').classList.add('visible');
+            }
+            
+            launchGame(mode) {
+                console.log(`Launching ${mode} mode for ${this.selectedCity.name}`);
+                document.getElementById('mode-select').classList.remove('visible');
+                
+                // Hide map UI
+                document.getElementById('map-container').style.display = 'none';
+                document.getElementById('ui-overlay').style.display = 'none';
+                
+                // Show game canvas and UI overlay
+                document.getElementById('gameCanvas').style.display = 'block';
+                document.getElementById('game-ui-overlay').style.display = 'block';
+                
+                // Initialize game
+                if (typeof MiniMetro !== 'undefined') {
+                    if (!window.game) {
+                        window.game = new MiniMetro();
+                    }
+                    window.game.currentCity = this.selectedCity.id;
+                    window.game.currentMode = mode;
+                    window.game.restart();
+                    
+                    // Enable debug mode on mobile
+                    if ('ontouchstart' in window) {
+                        window.debugTouch = true;
+                        console.log('Touch debug mode enabled');
+                    }
+                    
+                    // Start UI updates
+                    this.startGameUIUpdates();
+                }
+            }
+            
+            zoomIn() {
+                // Simple zoom without D3
+                console.log('Zoom in');
+            }
+            
+            zoomOut() {
+                // Simple zoom without D3
+                console.log('Zoom out');
+            }
+            
+            zoomReset() {
+                // Simple zoom reset without D3
+                console.log('Zoom reset');
+            }
+            
+            hideLoading() {
+                setTimeout(() => {
+                    document.getElementById('loading').classList.add('hidden');
+                }, 1000);
+            }
+            
+            loadProgress() {
+                const saved = localStorage.getItem('miniMetroProgress');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.cities.forEach(city => {
+                            if (data[city.id]) {
+                                Object.assign(city, data[city.id]);
+                            }
+                        });
+                        
+                        // Check unlock conditions
+                        this.cities.forEach(city => {
+                            if (city.requires && !city.unlocked) {
+                                const req = this.cities.find(c => c.id === city.requires);
+                                if (req && req.highscore >= req.target) {
+                                    city.unlocked = true;
+                                    console.log(`Unlocked: ${city.name}`);
+                                }
+                            }
+                        });
+                        
+                        // Redraw map
+                        if (document.getElementById('world-map')) {
+                            this.setupMap();
+                        }
+                    } catch (e) {
+                        console.error('Failed to load progress:', e);
+                    }
+                }
+            }
+            
+            saveProgress() {
+                const data = {};
+                this.cities.forEach(city => {
+                    data[city.id] = {
+                        unlocked: city.unlocked,
+                        highscore: city.highscore
+                    };
+                });
+                localStorage.setItem('miniMetroProgress', JSON.stringify(data));
+            }
+            
+            startGameUIUpdates() {
+                // Update game UI every 100ms
+                if (this.gameUIInterval) {
+                    clearInterval(this.gameUIInterval);
+                }
+                
+                // Store previous values for flip animation
+                this.prevValues = {
+                    week: '01',
+                    day: 'MON',
+                    hour: '06',
+                    minute: '00'
+                };
+                
+                this.gameUIInterval = setInterval(() => {
+                    if (window.game && !window.game.paused) {
+                        // Update score
+                        document.getElementById('score-value').textContent = window.game.score || 0;
+                        
+                        // Update week with flip effect
+                        const week = (window.game.week || 1).toString().padStart(2, '0');
+                        if (week !== this.prevValues.week) {
+                            this.flipCard('week', week);
+                            this.prevValues.week = week;
+                        }
+                        
+                        // Update day with flip effect
+                        const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                        const dayIndex = (window.game.day - 1) % 7;
+                        const day = days[dayIndex] || 'MON';
+                        if (day !== this.prevValues.day) {
+                            this.flipCard('day', day, true);
+                            this.prevValues.day = day;
+                        }
+                        
+                        // Calculate and update time
+                        const dayProgress = window.game.dayProgress || 0;
+                        const dayDuration = window.game.dayDuration || 20000;
+                        const timeProgress = dayProgress / dayDuration;
+                        
+                        // Game runs from 6:00 to 22:00 (16 hours)
+                        const startHour = 6;
+                        const endHour = 22;
+                        const totalHours = endHour - startHour;
+                        const currentHour = startHour + (totalHours * timeProgress);
+                        const hours = Math.floor(currentHour).toString().padStart(2, '0');
+                        const minutes = Math.floor((currentHour - Math.floor(currentHour)) * 60).toString().padStart(2, '0');
+                        
+                        // Update hours with flip effect
+                        if (hours !== this.prevValues.hour) {
+                            this.flipCard('hour', hours);
+                            this.prevValues.hour = hours;
+                        }
+                        
+                        // Update minutes with flip effect
+                        if (minutes !== this.prevValues.minute) {
+                            this.flipCard('minute', minutes);
+                            this.prevValues.minute = minutes;
+                        }
+                        
+                        // Update mobile clock display
+                        const mobileDayEl = document.getElementById('mobile-day');
+                        const mobileTimeEl = document.getElementById('mobile-time');
+                        if (mobileDayEl && mobileTimeEl) {
+                            mobileDayEl.textContent = day;
+                            mobileTimeEl.textContent = `${hours}:${minutes}`;
+                        }
+                    }
+                }, 100);
+            }
+            
+            flipCard(unit, value, isDay = false) {
+                const card = document.getElementById(`${unit}-card`);
+                const topEl = document.getElementById(`${unit}-top`);
+                const bottomEl = document.getElementById(`${unit}-bottom`);
+                
+                // Add flipping class for animation
+                card.classList.add('flipping');
+                
+                // Update the values after half the animation
+                setTimeout(() => {
+                    if (isDay) {
+                        topEl.style.fontSize = '22px';
+                        bottomEl.style.fontSize = '22px';
+                    }
+                    topEl.textContent = value;
+                    bottomEl.textContent = value;
+                }, 300);
+                
+                // Remove flipping class after animation
+                setTimeout(() => {
+                    card.classList.remove('flipping');
+                }, 600);
+            }
+            
+            exitGame() {
+                // Stop UI updates
+                if (this.gameUIInterval) {
+                    clearInterval(this.gameUIInterval);
+                    this.gameUIInterval = null;
+                }
+                
+                // Hide game UI
+                document.getElementById('game-ui-overlay').style.display = 'none';
+                document.getElementById('gameCanvas').style.display = 'none';
+                
+                // Show map
+                document.getElementById('map-container').style.display = 'block';
+                document.getElementById('ui-overlay').style.display = 'block';
+                
+                // Pause game
+                if (window.game) {
+                    window.game.paused = true;
+                }
+            }
+        }
+        
+        // Initialize when DOM is ready
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new UltimateMiniMetro();
+            // Call init after creating the instance
+            app.init();
+        });
+    </script>
+</body>
+</html>

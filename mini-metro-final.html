@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Metro</title>
+    <link rel="stylesheet" href="mini-metro-enhanced.css">
+    <style>
+        /* Additional styles for world map */
+        .world-map-svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .country {
+            fill: #E2E8F0;
+            stroke: #CBD5E1;
+            stroke-width: 0.5;
+            transition: fill 0.3s ease;
+        }
+        
+        .country:hover {
+            fill: #F1F5F9;
+        }
+        
+        .city-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { r: 6; opacity: 1; }
+            50% { r: 12; opacity: 0.5; }
+            100% { r: 6; opacity: 1; }
+        }
+        
+        .city-connection-active {
+            stroke: #2581C4;
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+            fill: none;
+            opacity: 0.5;
+            animation: dashMove 20s linear infinite;
+        }
+        
+        @keyframes dashMove {
+            to { stroke-dashoffset: -100; }
+        }
+        
+        /* Fix for game canvas */
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+        }
+        
+        #game-ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 101;
+            padding: 20px;
+        }
+        
+        .game-menu-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #333;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .game-menu-btn:hover {
+            background: #333;
+            color: white;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-animation">
+            <div class="metro-line line-1"></div>
+            <div class="metro-line line-2"></div>
+            <div class="metro-line line-3"></div>
+            <div class="station-dot dot-1"></div>
+            <div class="station-dot dot-2"></div>
+            <div class="station-dot dot-3"></div>
+        </div>
+        <div class="loading-text">LOADING</div>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-background">
+        <svg class="metro-lines-bg" width="100%" height="100%">
+            <defs>
+                <linearGradient id="lineGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#DD2515;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#DD2515;stop-opacity:0" />
+                </linearGradient>
+                <linearGradient id="lineGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#2581C4;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#2581C4;stop-opacity:0" />
+                </linearGradient>
+                <linearGradient id="lineGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#35AB52;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#35AB52;stop-opacity:0" />
+                </linearGradient>
+            </defs>
+            <path class="bg-line bg-line-1" d="M0,100 Q200,150 400,100 T800,150" />
+            <path class="bg-line bg-line-2" d="M100,0 Q150,200 100,400 T150,800" />
+            <path class="bg-line bg-line-3" d="M800,200 Q600,250 400,200 T0,250" />
+            <circle class="bg-station" cx="200" cy="125" r="8" />
+            <circle class="bg-station" cx="600" cy="125" r="8" />
+            <circle class="bg-station" cx="125" cy="300" r="8" />
+        </svg>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen active">
+        <div class="menu-container">
+            <div class="logo-section">
+                <h1 class="game-logo">
+                    <span class="logo-mini">MINI</span>
+                    <span class="logo-metro">METRO</span>
+                </h1>
+                <div class="logo-underline"></div>
+                <p class="game-tagline">Mind the Gap</p>
+            </div>
+            
+            <nav class="menu-nav">
+                <button class="menu-item" onclick="showCitySelect()">
+                    <span class="menu-icon">▶</span>
+                    <span class="menu-text">PLAY</span>
+                    <span class="menu-arrow">→</span>
+                </button>
+                <button class="menu-item daily" onclick="showDailyChallenge()">
+                    <span class="menu-icon">📅</span>
+                    <span class="menu-text">DAILY CHALLENGE</span>
+                    <span class="menu-badge">NEW</span>
+                </button>
+                <button class="menu-item" onclick="showAchievements()">
+                    <span class="menu-icon">🏆</span>
+                    <span class="menu-text">ACHIEVEMENTS</span>
+                    <span class="menu-progress">67%</span>
+                </button>
+                <button class="menu-item" onclick="showLeaderboard()">
+                    <span class="menu-icon">📊</span>
+                    <span class="menu-text">LEADERBOARD</span>
+                    <span class="menu-rank">#142</span>
+                </button>
+                <button class="menu-item" onclick="showSettings()">
+                    <span class="menu-icon">⚙</span>
+                    <span class="menu-text">SETTINGS</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- City Selection with World Map -->
+    <div id="city-select" class="screen">
+        <header class="screen-header">
+            <button class="back-btn" onclick="showMainMenu()">
+                <span class="back-icon">←</span>
+                <span class="back-text">BACK</span>
+            </button>
+            <div class="header-info">
+                <h2 class="screen-title">SELECT DESTINATION</h2>
+                <div class="unlock-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 35%"></div>
+                    </div>
+                    <span class="progress-text">12 of 34 Cities Unlocked</span>
+                </div>
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setView('map')">🗺 Map</button>
+                <button class="view-btn" onclick="setView('grid')">⊞ Grid</button>
+            </div>
+        </header>
+
+        <!-- World Map View -->
+        <div id="world-map-view" class="city-view active">
+            <div class="world-map-container">
+                <svg id="world-map-svg" class="world-map-svg" viewBox="0 0 1200 600">
+                    <!-- World map will be drawn here -->
+                </svg>
+            </div>
+            
+            <!-- City Detail Panel -->
+            <div id="city-detail" class="city-detail-panel">
+                <div class="city-detail-header">
+                    <h3 class="city-name">SELECT A CITY</h3>
+                    <span class="city-difficulty">●●●○○</span>
+                </div>
+                <div class="city-preview">
+                    <canvas id="city-preview-canvas" width="300" height="150"></canvas>
+                </div>
+                <div class="city-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">TARGET</span>
+                        <span class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">HIGHSCORE</span>
+                        <span class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">WORLD RANK</span>
+                        <span class="stat-value">-</span>
+                    </div>
+                </div>
+                <div class="city-leaderboard">
+                    <h4>TOP PLAYERS</h4>
+                    <div class="leaderboard-list"></div>
+                </div>
+                <button class="play-city-btn" disabled onclick="proceedToModeSelect()">SELECT CITY FIRST</button>
+            </div>
+        </div>
+
+        <!-- Grid View -->
+        <div id="grid-view" class="city-view">
+            <div class="filter-bar">
+                <button class="filter-btn active" data-filter="all">ALL</button>
+                <button class="filter-btn" data-filter="unlocked">UNLOCKED</button>
+                <button class="filter-btn" data-filter="locked">LOCKED</button>
+                <button class="filter-btn" data-filter="completed">COMPLETED</button>
+            </div>
+            <div class="cities-grid" id="cities-grid"></div>
+        </div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="mode-select" class="screen">
+        <header class="screen-header">
+            <button class="back-btn" onclick="showCitySelect()">
+                <span class="back-icon">←</span>
+                <span class="back-text">BACK</span>
+            </button>
+            <div class="selected-city-info">
+                <h2 id="selected-city-title">LONDON</h2>
+                <p id="selected-city-desc">Cross the Thames</p>
+            </div>
+        </header>
+
+        <div class="modes-container">
+            <div class="mode-card" data-mode="normal">
+                <div class="mode-icon">🎯</div>
+                <h3 class="mode-name">NORMAL</h3>
+                <p class="mode-description">Build an efficient network for a rapidly growing city</p>
+                <div class="mode-objectives">
+                    <div class="objective">✓ Weekly upgrades</div>
+                    <div class="objective">✓ Overcrowding challenge</div>
+                    <div class="objective">✓ Unlock new cities</div>
+                </div>
+                <button class="select-mode-btn" onclick="launchGame('normal')">PLAY NORMAL</button>
+            </div>
+
+            <div class="mode-card" data-mode="endless">
+                <div class="mode-icon">∞</div>
+                <h3 class="mode-name">ENDLESS</h3>
+                <p class="mode-description">Relax and build without pressure</p>
+                <div class="mode-objectives">
+                    <div class="objective">✓ No game over</div>
+                    <div class="objective">✓ Efficiency rewards</div>
+                    <div class="objective">✓ Zen experience</div>
+                </div>
+                <button class="select-mode-btn" onclick="launchGame('endless')">PLAY ENDLESS</button>
+            </div>
+
+            <div class="mode-card locked" data-mode="extreme">
+                <div class="mode-icon">⚡</div>
+                <h3 class="mode-name">EXTREME</h3>
+                <p class="mode-description">No modifications allowed</p>
+                <div class="mode-objectives">
+                    <div class="objective">✓ Permanent decisions</div>
+                    <div class="objective">✓ Ultimate challenge</div>
+                    <div class="objective">✓ 2000+ target</div>
+                </div>
+                <div class="unlock-requirement">Unlock: 1500 passengers</div>
+                <button class="select-mode-btn" disabled>LOCKED</button>
+            </div>
+
+            <div class="mode-card locked" data-mode="creative">
+                <div class="mode-icon">🎨</div>
+                <h3 class="mode-name">CREATIVE</h3>
+                <p class="mode-description">Design your dream network</p>
+                <div class="mode-objectives">
+                    <div class="objective">✓ Unlimited resources</div>
+                    <div class="objective">✓ No constraints</div>
+                    <div class="objective">✓ Share designs</div>
+                </div>
+                <div class="unlock-requirement">Unlock: 10 cities with ★★★</div>
+                <button class="select-mode-btn" disabled>LOCKED</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas" style="display: none;"></canvas>
+    
+    <!-- Game UI Overlay -->
+    <div id="game-ui" style="display: none;">
+        <button class="game-menu-btn" onclick="exitToMenu()">← MENU</button>
+        <div id="ui-overlay" style="position: absolute; top: 0; right: 0; padding: 20px;">
+            <div style="background: rgba(255,255,255,0.95); padding: 10px 20px; border-radius: 8px; font-family: 'Helvetica Neue', sans-serif;">
+                <span id="score-value" style="font-size: 24px; font-weight: 600;">0</span>
+                <span style="font-size: 14px; opacity: 0.7; margin-left: 5px;">passengers</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="city-maps.js"></script>
+    <script src="game-realistic.js"></script>
+    <script>
+        // Enhanced Mini Metro UI with proper game integration
+        let selectedCity = null;
+        let selectedMode = 'normal';
+        let worldGeoData = null;
+        
+        const cities = [
+            { id: 'london', name: 'LONDON', lat: 51.5, lon: -0.1, unlocked: true, target: 750, highscore: 0, stars: 0, difficulty: 3 },
+            { id: 'paris', name: 'PARIS', lat: 48.8, lon: 2.3, unlocked: true, target: 750, highscore: 0, stars: 0, difficulty: 3 },
+            { id: 'newyork', name: 'NEW YORK', lat: 40.7, lon: -74.0, unlocked: true, target: 750, highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'berlin', name: 'BERLIN', lat: 52.5, lon: 13.4, unlocked: false, target: 750, requires: 'london', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'tokyo', name: 'TOKYO', lat: 35.6, lon: 139.6, unlocked: false, target: 900, requires: 'paris', highscore: 0, stars: 0, difficulty: 5 },
+            { id: 'hongkong', name: 'HONG KONG', lat: 22.3, lon: 114.1, unlocked: false, target: 900, requires: 'newyork', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'osaka', name: 'OSAKA', lat: 34.6, lon: 135.5, unlocked: false, target: 900, requires: 'berlin', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'saopaulo', name: 'SÃO PAULO', lat: -23.5, lon: -46.6, unlocked: false, target: 1000, requires: 'tokyo', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'moscow', name: 'MOSCOW', lat: 55.7, lon: 37.6, unlocked: false, target: 1000, requires: 'hongkong', highscore: 0, stars: 0, difficulty: 3 },
+            { id: 'montreal', name: 'MONTREAL', lat: 45.5, lon: -73.5, unlocked: false, target: 1000, requires: 'osaka', highscore: 0, stars: 0, difficulty: 3 },
+            { id: 'cairo', name: 'CAIRO', lat: 30.0, lon: 31.2, unlocked: false, target: 1100, requires: 'saopaulo', highscore: 0, stars: 0, difficulty: 3 },
+            { id: 'sydney', name: 'SYDNEY', lat: -33.8, lon: 151.2, unlocked: false, target: 1200, requires: 'moscow', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'singapore', name: 'SINGAPORE', lat: 1.3, lon: 103.8, unlocked: false, target: 1200, requires: 'cairo', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'stockholm', name: 'STOCKHOLM', lat: 59.3, lon: 18.0, unlocked: false, target: 1200, requires: 'montreal', highscore: 0, stars: 0, difficulty: 3 },
+            { id: 'mumbai', name: 'MUMBAI', lat: 19.0, lon: 72.8, unlocked: false, target: 1300, requires: 'sydney', highscore: 0, stars: 0, difficulty: 5 },
+            { id: 'seoul', name: 'SEOUL', lat: 37.5, lon: 127.0, unlocked: false, target: 1300, requires: 'singapore', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'mexico', name: 'MEXICO CITY', lat: 19.4, lon: -99.1, unlocked: false, target: 1400, requires: 'stockholm', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'bangkok', name: 'BANGKOK', lat: 13.7, lon: 100.5, unlocked: false, target: 1500, requires: 'mumbai', highscore: 0, stars: 0, difficulty: 4 },
+            { id: 'dubai', name: 'DUBAI', lat: 25.2, lon: 55.2, unlocked: false, target: 1600, requires: 'seoul', highscore: 0, stars: 0, difficulty: 4 }
+        ];
+        
+        // Load world map data
+        fetch('world-simplified.json')
+            .then(response => response.json())
+            .then(data => {
+                worldGeoData = data;
+                drawWorldMap();
+            })
+            .catch(() => {
+                // Fallback to simple shapes if GeoJSON fails
+                drawSimpleWorldMap();
+            });
+        
+        function drawWorldMap() {
+            const svg = document.getElementById('world-map-svg');
+            
+            if (worldGeoData && worldGeoData.features) {
+                // Draw countries from GeoJSON
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'countries');
+                
+                worldGeoData.features.forEach(feature => {
+                    if (feature.geometry && feature.geometry.coordinates) {
+                        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                        path.setAttribute('class', 'country');
+                        path.setAttribute('d', geoPathFromFeature(feature));
+                        g.appendChild(path);
+                    }
+                });
+                
+                svg.appendChild(g);
+            }
+            
+            drawCities();
+        }
+        
+        function drawSimpleWorldMap() {
+            const svg = document.getElementById('world-map-svg');
+            
+            // Simple continent shapes as fallback
+            const continents = [
+                { name: 'europe', d: 'M550,180 L650,170 L680,220 L650,250 L600,240 L550,200 Z' },
+                { name: 'north-america', d: 'M200,150 L350,140 L380,200 L350,280 L250,300 L180,250 Z' },
+                { name: 'asia', d: 'M700,140 L900,130 L920,200 L900,280 L750,290 L700,240 Z' },
+                { name: 'south-america', d: 'M280,350 L320,340 L350,450 L300,490 L270,450 L280,350 Z' },
+                { name: 'africa', d: 'M550,280 L600,270 L620,420 L560,430 L540,380 L550,280 Z' },
+                { name: 'oceania', d: 'M850,400 L920,390 L940,450 L860,460 L850,400 Z' }
+            ];
+            
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', 'continents');
+            
+            continents.forEach(continent => {
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('class', 'country');
+                path.setAttribute('d', continent.d);
+                g.appendChild(path);
+            });
+            
+            svg.appendChild(g);
+            drawCities();
+        }
+        
+        function geoPathFromFeature(feature) {
+            // Simplified path generation from GeoJSON
+            let path = '';
+            const coords = feature.geometry.coordinates;
+            
+            if (feature.geometry.type === 'Polygon') {
+                coords[0].forEach((point, i) => {
+                    const x = (point[0] + 180) * (1200 / 360);
+                    const y = (90 - point[1]) * (600 / 180);
+                    path += (i === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+                });
+                path += 'Z';
+            } else if (feature.geometry.type === 'MultiPolygon') {
+                coords.forEach(polygon => {
+                    polygon[0].forEach((point, i) => {
+                        const x = (point[0] + 180) * (1200 / 360);
+                        const y = (90 - point[1]) * (600 / 180);
+                        path += (i === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+                    });
+                    path += 'Z ';
+                });
+            }
+            
+            return path;
+        }
+        
+        function drawCities() {
+            const svg = document.getElementById('world-map-svg');
+            
+            // Draw connections
+            const connectionsG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            connectionsG.setAttribute('class', 'connections');
+            
+            cities.forEach(city => {
+                if (city.unlocked && city.requires) {
+                    const fromCity = cities.find(c => c.id === city.requires);
+                    if (fromCity && fromCity.unlocked) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('class', 'city-connection-active');
+                        line.setAttribute('x1', (fromCity.lon + 180) * (1200 / 360));
+                        line.setAttribute('y1', (90 - fromCity.lat) * (600 / 180));
+                        line.setAttribute('x2', (city.lon + 180) * (1200 / 360));
+                        line.setAttribute('y2', (90 - city.lat) * (600 / 180));
+                        connectionsG.appendChild(line);
+                    }
+                }
+            });
+            
+            svg.appendChild(connectionsG);
+            
+            // Draw city markers
+            const markersG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            markersG.setAttribute('class', 'city-markers');
+            
+            cities.forEach(city => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'city-marker');
+                g.style.cursor = city.unlocked ? 'pointer' : 'not-allowed';
+                
+                const x = (city.lon + 180) * (1200 / 360);
+                const y = (90 - city.lat) * (600 / 180);
+                
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+                circle.setAttribute('r', city.unlocked ? 8 : 6);
+                circle.setAttribute('fill', city.unlocked ? '#DD2515' : '#94A3B8');
+                circle.setAttribute('stroke', city.unlocked ? '#0F172A' : '#CBD5E1');
+                circle.setAttribute('stroke-width', 2);
+                
+                if (city.unlocked) {
+                    circle.classList.add('city-pulse');
+                }
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y + 20);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '10');
+                text.setAttribute('fill', '#0F172A');
+                text.textContent = city.name.substring(0, 3).toUpperCase();
+                
+                g.appendChild(circle);
+                g.appendChild(text);
+                
+                if (city.unlocked) {
+                    g.addEventListener('click', () => selectCityFromMap(city));
+                }
+                
+                markersG.appendChild(g);
+            });
+            
+            svg.appendChild(markersG);
+        }
+        
+        function selectCityFromMap(city) {
+            selectedCity = city;
+            updateCityDetailPanel(city);
+            playClickSound();
+        }
+        
+        function updateCityDetailPanel(city) {
+            document.querySelector('.city-detail-panel .city-name').textContent = city.name;
+            
+            const difficultyDots = Array(5).fill('').map((_, i) => 
+                i < city.difficulty ? '●' : '○'
+            ).join('');
+            document.querySelector('.city-difficulty').textContent = difficultyDots;
+            
+            document.querySelector('.stat-item:nth-child(1) .stat-value').textContent = city.target;
+            document.querySelector('.stat-item:nth-child(2) .stat-value').textContent = city.highscore || '-';
+            document.querySelector('.stat-item:nth-child(3) .stat-value').textContent = city.highscore ? `#${Math.floor(Math.random() * 1000) + 100}` : '-';
+            
+            const playBtn = document.querySelector('.play-city-btn');
+            if (city.unlocked) {
+                playBtn.disabled = false;
+                playBtn.textContent = `PLAY ${city.name}`;
+            } else {
+                playBtn.disabled = true;
+                playBtn.textContent = 'CITY LOCKED';
+            }
+            
+            drawCityPreview(city);
+        }
+        
+        function drawCityPreview(city) {
+            const canvas = document.getElementById('city-preview-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = '#D4E6F1';
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            
+            // Draw simplified river based on city
+            if (city.id === 'london') {
+                ctx.beginPath();
+                ctx.moveTo(0, 75);
+                ctx.bezierCurveTo(100, 50, 200, 100, 300, 75);
+                ctx.stroke();
+            } else if (city.id === 'paris') {
+                ctx.beginPath();
+                ctx.moveTo(0, 75);
+                ctx.quadraticCurveTo(150, 50, 300, 75);
+                ctx.stroke();
+            } else if (city.id === 'newyork') {
+                ctx.beginPath();
+                ctx.moveTo(100, 0);
+                ctx.lineTo(100, 150);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(200, 0);
+                ctx.lineTo(200, 150);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(0, 75);
+                ctx.lineTo(300, 75);
+                ctx.stroke();
+            }
+        }
+        
+        function proceedToModeSelect() {
+            if (selectedCity) {
+                showScreen('mode-select');
+                document.getElementById('selected-city-title').textContent = selectedCity.name;
+                document.getElementById('selected-city-desc').textContent = getCityDescription(selectedCity);
+            }
+        }
+        
+        function getCityDescription(city) {
+            const descriptions = {
+                london: 'Cross the Thames and connect historic London',
+                paris: 'Navigate the Seine and its romantic islands',
+                newyork: 'Bridge the rivers to unite the five boroughs',
+                berlin: 'Limited bridges challenge your planning',
+                tokyo: 'Master the world\'s busiest metro system',
+                hongkong: 'Connect islands in the Pearl River Delta'
+            };
+            return descriptions[city.id] || 'Build an efficient metro network';
+        }
+        
+        function launchGame(mode) {
+            if (!selectedCity) {
+                alert('Please select a city first!');
+                return;
+            }
+            
+            selectedMode = mode;
+            
+            // Hide all screens
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            
+            // Show game canvas
+            document.getElementById('gameCanvas').style.display = 'block';
+            document.getElementById('game-ui').style.display = 'block';
+            
+            // Initialize or restart game
+            if (!window.game) {
+                window.game = new MiniMetro();
+            }
+            
+            // Set city and start game
+            window.game.currentCity = selectedCity.id;
+            window.game.currentMode = mode;
+            window.game.restart();
+            
+            console.log(`Game started: ${selectedCity.name} - ${mode} mode`);
+        }
+        
+        function exitToMenu() {
+            // Hide game
+            document.getElementById('gameCanvas').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'none';
+            
+            // Show main menu
+            showScreen('main-menu');
+            
+            // Pause game if running
+            if (window.game) {
+                window.game.paused = true;
+            }
+        }
+        
+        // Screen navigation
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            const screen = document.getElementById(screenId);
+            if (screen) {
+                screen.classList.add('active');
+            }
+            
+            playClickSound();
+        }
+        
+        function showMainMenu() {
+            showScreen('main-menu');
+        }
+        
+        function showCitySelect() {
+            showScreen('city-select');
+            if (!document.querySelector('.city-markers').children.length) {
+                drawSimpleWorldMap();
+            }
+        }
+        
+        function showDailyChallenge() {
+            selectedCity = cities[0]; // London
+            selectedMode = 'daily';
+            launchGame('daily');
+        }
+        
+        function showAchievements() {
+            alert('Achievements coming soon!');
+        }
+        
+        function showLeaderboard() {
+            alert('Leaderboard coming soon!');
+        }
+        
+        function showSettings() {
+            alert('Settings coming soon!');
+        }
+        
+        function setView(view) {
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.city-view').forEach(v => {
+                v.classList.remove('active');
+            });
+            
+            if (view === 'map') {
+                document.getElementById('world-map-view').classList.add('active');
+            } else {
+                document.getElementById('grid-view').classList.add('active');
+                renderCityGrid();
+            }
+        }
+        
+        function renderCityGrid() {
+            const grid = document.getElementById('cities-grid');
+            grid.innerHTML = '';
+            
+            cities.forEach(city => {
+                const card = document.createElement('div');
+                card.className = 'city-card';
+                if (!city.unlocked) card.classList.add('locked');
+                
+                const stars = Array(3).fill('').map((_, i) => 
+                    `<span class="star ${i < city.stars ? '' : 'empty'}">★</span>`
+                ).join('');
+                
+                card.innerHTML = `
+                    <div class="city-card-name">${city.name}</div>
+                    <div class="city-card-preview"></div>
+                    <div class="city-card-stats">
+                        <span class="city-card-target">🎯 ${city.target}</span>
+                        <span class="city-card-highscore">🏆 ${city.highscore || '-'}</span>
+                    </div>
+                    <div class="city-card-stars">${stars}</div>
+                `;
+                
+                if (city.unlocked) {
+                    card.addEventListener('click', () => {
+                        selectedCity = city;
+                        proceedToModeSelect();
+                    });
+                }
+                
+                grid.appendChild(card);
+            });
+        }
+        
+        function playClickSound() {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLYiTYIG2m98OScTgwOUajk4LNgGwY5ktXyxnkrBSp3x/DekEAKFV+16+uoVRQKRqDf8bxrIAUsfM/w14kyCBtpvOzlnEwHDFGo4+SzWREGOpDW8sh6LC4EMnzI8N6HOAoWYLfn5KVQCwxPrOLwtGAcBjiS1/PMeS0GI3fH8N+RQAoUXrTp66hVFApGnt/yvmwhBSuBzvLZiTYIHGi98eCcShAMUKjj4LNgGwU4k9T1w3kpBSuAzvDeiTYIHWq+8OGaTA0PVKzj37JfGAU7k9XwxHkpBCh+zPLaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0OVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCp9y/HZijYIHmm98eCdTgwMUqni5LVfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5bJfGAU7k9Xwx3kpBCh+zPDaiTUIHWq+8OKdTA0PVKns5rJfGAU=');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        }
+        
+        // Hide loading screen after initialization
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            loadingScreen.classList.add('hidden');
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 350);
+        }, 2000);
+        
+        // Load saved progress
+        const saved = localStorage.getItem('miniMetroProgress');
+        if (saved) {
+            try {
+                const progress = JSON.parse(saved);
+                cities.forEach(city => {
+                    if (progress[city.id]) {
+                        Object.assign(city, progress[city.id]);
+                    }
+                });
+            } catch (e) {
+                console.error('Failed to load progress:', e);
+            }
+        }
+    </script>
+</body>
+</html>

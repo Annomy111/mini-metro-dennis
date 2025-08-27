@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Metro</title>
+    <link rel="stylesheet" href="menu.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            background: #F4F4F4;
+            transition: background-color 0.3s ease;
+        }
+        
+        body.night-mode {
+            background: #242021;
+        }
+        
+        #gameCanvas {
+            display: none;
+            cursor: crosshair;
+        }
+        
+        #gameCanvas.active {
+            display: block;
+        }
+        
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            pointer-events: none;
+            z-index: 10;
+            display: none;
+        }
+        
+        #ui-overlay.active {
+            display: block;
+        }
+        
+        .ui-element {
+            pointer-events: auto;
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 4px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #0A0404;
+            transition: all 0.3s ease;
+        }
+        
+        body.night-mode .ui-element {
+            background: rgba(53, 49, 54, 0.95);
+            color: #F2F2F2;
+        }
+        
+        #score {
+            float: left;
+        }
+        
+        #week-progress {
+            float: right;
+        }
+        
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: none;
+            gap: 10px;
+        }
+        
+        #controls.active {
+            display: flex;
+        }
+        
+        .control-btn {
+            pointer-events: auto;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333333;
+            border: 2px solid #D4D4D4;
+            border-radius: 8px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        body.night-mode .control-btn {
+            background: rgba(53, 49, 54, 0.95);
+            color: #F2F2F2;
+            border-color: #747474;
+        }
+        
+        .control-btn:hover {
+            background: #80C3FF;
+            color: white;
+            border-color: #80C3FF;
+            transform: translateY(-2px);
+        }
+        
+        #pause-btn.paused .pause-icon {
+            display: none;
+        }
+        
+        #pause-btn.paused .play-icon {
+            display: inline;
+        }
+        
+        .pause-icon, .play-icon {
+            line-height: 1;
+        }
+        
+        .play-icon {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Menu Screen -->
+    <div id="main-menu" class="screen active">
+        <div class="game-logo">MINI METRO</div>
+        <div class="menu-buttons">
+            <button class="menu-btn" onclick="showCitySelect()">Play</button>
+            <button class="menu-btn" onclick="showDailyChallenge()">Daily Challenge</button>
+            <button class="menu-btn" onclick="showAchievements()">Achievements</button>
+            <button class="menu-btn" onclick="showStatistics()">Statistics</button>
+            <button class="menu-btn" onclick="showSettings()">Settings</button>
+        </div>
+    </div>
+    
+    <!-- City Selection Screen -->
+    <div id="city-select" class="screen">
+        <button class="back-btn" onclick="showMainMenu()">← Back</button>
+        <div class="city-select-header">
+            <h1 class="city-select-title">Select a City</h1>
+        </div>
+        <div class="world-map" id="world-map"></div>
+        <div class="mode-selection" id="mode-selection"></div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="menu-btn" id="start-game-btn" onclick="startSelectedGame()" style="display: none;">Start Game</button>
+        </div>
+    </div>
+    
+    <!-- Achievements Screen -->
+    <div id="achievements" class="screen">
+        <button class="back-btn" onclick="showMainMenu()">← Back</button>
+        <div class="achievements-grid" id="achievements-grid"></div>
+    </div>
+    
+    <!-- Statistics Screen -->
+    <div id="statistics" class="screen">
+        <button class="back-btn" onclick="showMainMenu()">← Back</button>
+        <div class="stats-container">
+            <h1 class="stats-title">Statistics</h1>
+            <div class="stat-card">
+                <div class="stat-label">Total Passengers Transported</div>
+                <div class="stat-value" id="total-passengers">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Cities Completed</div>
+                <div class="stat-value" id="cities-completed">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Best Score (Any City)</div>
+                <div class="stat-value" id="best-score">0</div>
+            </div>
+            <div class="leaderboard">
+                <h2 class="leaderboard-title">Global Leaderboard</h2>
+                <div id="leaderboard-entries"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game UI Overlay -->
+    <div id="ui-overlay">
+        <div id="score" class="ui-element">
+            <span id="score-value">0</span>
+            <span style="font-size: 14px; opacity: 0.7;">Passagiere</span>
+        </div>
+        <div id="week-progress" class="ui-element">
+            <div style="font-size: 14px; opacity: 0.7;">Woche <span id="week-value">1</span></div>
+            <div id="day-display" style="font-size: 20px; font-weight: 600;">
+                <span id="day-name">Montag</span>
+                <span id="clock-time" style="margin-left: 10px;">06:00</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Game Controls -->
+    <div id="controls">
+        <button class="control-btn" onclick="showMainMenu()">
+            <span>⌂</span>
+        </button>
+        <button class="control-btn" id="pause-btn" onclick="game.togglePause()">
+            <span class="pause-icon">❚❚</span>
+            <span class="play-icon">▶</span>
+        </button>
+        <button class="control-btn" id="speed-btn" onclick="game.cycleSpeed()">
+            <span id="speed-display">1×</span>
+        </button>
+        <button class="control-btn" onclick="game.toggleNightMode()">
+            <span id="night-icon">🌙</span>
+        </button>
+        <button class="control-btn" onclick="game.restart()">
+            <span>↺</span>
+        </button>
+    </div>
+    
+    <!-- Upgrade Modal -->
+    <div id="upgrade-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 100;">
+        <div class="upgrade-title" style="font-size: 24px; margin-bottom: 20px; text-align: center;">Wähle ein Upgrade</div>
+        <div class="upgrade-options" id="upgrade-options" style="display: flex; gap: 20px;"></div>
+    </div>
+    
+    <!-- Game Over Screen -->
+    <div id="game-over" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 200; text-align: center;">
+        <h2 style="font-size: 32px; margin-bottom: 20px;">Spiel beendet!</h2>
+        <div id="final-score" style="font-size: 48px; font-weight: bold; margin-bottom: 30px; color: #2581C4;">0</div>
+        <button class="control-btn" onclick="game.restart()" style="margin-right: 10px;">Nochmal spielen</button>
+        <button class="control-btn" onclick="showMainMenu()">Hauptmenü</button>
+    </div>
+    
+    <script src="city-maps.js"></script>
+    <script src="menu.js"></script>
+    <script src="game-realistic.js"></script>
+    <script>
+        let selectedCity = null;
+        let selectedMode = 'normal';
+        
+        function showMainMenu() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('main-menu').classList.add('active');
+            document.getElementById('gameCanvas').classList.remove('active');
+            document.getElementById('ui-overlay').classList.remove('active');
+            document.getElementById('controls').classList.remove('active');
+            
+            if (window.game) {
+                game.paused = true;
+            }
+        }
+        
+        function showCitySelect() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('city-select').classList.add('active');
+            renderCityMap();
+            renderModeSelection();
+        }
+        
+        function showAchievements() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('achievements').classList.add('active');
+            renderAchievements();
+        }
+        
+        function showStatistics() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('statistics').classList.add('active');
+            updateStatistics();
+        }
+        
+        function showDailyChallenge() {
+            if (!menuSystem.dailyChallenge.played) {
+                startGame('london', 'daily');
+            } else {
+                alert('Du hast die heutige Challenge bereits gespielt!\nScore: ' + menuSystem.dailyChallenge.score);
+            }
+        }
+        
+        function showSettings() {
+            alert('Settings coming soon!');
+        }
+        
+        function renderCityMap() {
+            const mapContainer = document.getElementById('world-map');
+            mapContainer.innerHTML = '';
+            
+            Object.entries(menuSystem.cities).forEach(([key, city]) => {
+                const marker = document.createElement('div');
+                marker.className = 'city-marker' + (city.unlocked ? '' : ' locked');
+                marker.style.left = (city.position.x * 100) + '%';
+                marker.style.top = (city.position.y * 100) + '%';
+                marker.style.background = city.unlocked ? city.color : '#999';
+                marker.textContent = city.name.substring(0, 1);
+                
+                const tooltip = document.createElement('div');
+                tooltip.className = 'city-tooltip';
+                tooltip.textContent = city.name + (city.unlocked ? '' : ' (Locked)');
+                marker.appendChild(tooltip);
+                
+                if (city.unlocked) {
+                    marker.onclick = () => selectCity(key);
+                }
+                
+                mapContainer.appendChild(marker);
+            });
+        }
+        
+        function renderModeSelection() {
+            const modeContainer = document.getElementById('mode-selection');
+            modeContainer.innerHTML = '';
+            
+            Object.entries(menuSystem.gameModes).forEach(([key, mode]) => {
+                const card = document.createElement('div');
+                card.className = 'mode-card' + (mode.unlocked ? '' : ' locked');
+                
+                card.innerHTML = `
+                    <div class="mode-icon">${mode.icon}</div>
+                    <div class="mode-name">${mode.name}</div>
+                    <div class="mode-description">${mode.description}</div>
+                `;
+                
+                if (mode.unlocked) {
+                    card.onclick = () => selectMode(key);
+                }
+                
+                modeContainer.appendChild(card);
+            });
+        }
+        
+        function selectCity(cityKey) {
+            selectedCity = cityKey;
+            document.querySelectorAll('.city-marker').forEach(m => m.classList.remove('selected'));
+            event.target.classList.add('selected');
+            
+            updateStartButton();
+        }
+        
+        function selectMode(modeKey) {
+            selectedMode = modeKey;
+            document.querySelectorAll('.mode-card').forEach(m => m.classList.remove('selected'));
+            event.target.closest('.mode-card').classList.add('selected');
+            
+            updateStartButton();
+        }
+        
+        function updateStartButton() {
+            const btn = document.getElementById('start-game-btn');
+            if (selectedCity && selectedMode) {
+                btn.style.display = 'inline-block';
+                btn.textContent = `Start ${menuSystem.cities[selectedCity].name} - ${menuSystem.gameModes[selectedMode].name}`;
+            }
+        }
+        
+        function startSelectedGame() {
+            if (selectedCity && selectedMode) {
+                startGame(selectedCity, selectedMode);
+            }
+        }
+        
+        function startGame(city, mode) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('gameCanvas').classList.add('active');
+            document.getElementById('ui-overlay').classList.add('active');
+            document.getElementById('controls').classList.add('active');
+            
+            // Initialize or restart game
+            if (!window.game) {
+                window.game = new MiniMetro();
+            }
+            
+            // Initialize with selected city and mode
+            game.initializeCity(city, mode);
+            
+            // Apply city-specific features
+            const cityData = menuSystem.cities[city];
+            if (cityData) {
+                // Apply city color theme
+                document.body.style.setProperty('--city-color', cityData.color);
+            }
+            
+            game.paused = false;
+        }
+        
+        function renderAchievements() {
+            const grid = document.getElementById('achievements-grid');
+            grid.innerHTML = '';
+            
+            Object.entries(menuSystem.achievements).forEach(([key, achievement]) => {
+                const card = document.createElement('div');
+                card.className = 'achievement-card' + (achievement.unlocked ? ' unlocked' : '');
+                
+                const progressPercent = (achievement.progress / achievement.target) * 100;
+                
+                card.innerHTML = `
+                    <div class="achievement-card-icon">${achievement.icon}</div>
+                    <div class="achievement-info">
+                        <div class="achievement-card-name">${achievement.name}</div>
+                        <div class="achievement-card-description">${achievement.description}</div>
+                        <div class="achievement-progress">
+                            <div class="achievement-progress-bar" style="width: ${progressPercent}%"></div>
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+        
+        function updateStatistics() {
+            let totalPassengers = 0;
+            let citiesCompleted = 0;
+            let bestScore = 0;
+            
+            Object.values(menuSystem.cities).forEach(city => {
+                Object.values(city.highscores).forEach(score => {
+                    totalPassengers += score;
+                    if (score > bestScore) bestScore = score;
+                    if (score > 500) citiesCompleted++;
+                });
+            });
+            
+            document.getElementById('total-passengers').textContent = totalPassengers;
+            document.getElementById('cities-completed').textContent = citiesCompleted;
+            document.getElementById('best-score').textContent = bestScore;
+            
+            // Mock leaderboard
+            const leaderboard = [
+                { rank: 1, name: 'Player 1', score: 2847 },
+                { rank: 2, name: 'Player 2', score: 2341 },
+                { rank: 3, name: 'Player 3', score: 1923 },
+                { rank: 4, name: 'You', score: bestScore },
+                { rank: 5, name: 'Player 5', score: 1102 }
+            ];
+            
+            const leaderboardContainer = document.getElementById('leaderboard-entries');
+            leaderboardContainer.innerHTML = '';
+            
+            leaderboard.sort((a, b) => b.score - a.score).forEach((entry, index) => {
+                const div = document.createElement('div');
+                div.className = 'leaderboard-entry';
+                div.innerHTML = `
+                    <span class="leaderboard-rank">#${index + 1}</span>
+                    <span class="leaderboard-name">${entry.name}</span>
+                    <span class="leaderboard-score">${entry.score}</span>
+                `;
+                leaderboardContainer.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

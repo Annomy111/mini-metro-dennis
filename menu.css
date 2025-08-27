@@ -1,0 +1,475 @@
+/* Main Menu Styles */
+.screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    background: #F4F4F4;
+    font-family: 'Helvetica Neue', Helvetica, -apple-system, sans-serif;
+    transition: opacity 0.3s ease;
+}
+
+.screen.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+body.night-mode .screen {
+    background: #242021;
+    color: #F2F2F2;
+}
+
+/* Main Menu */
+#main-menu {
+    text-align: center;
+}
+
+.game-logo {
+    font-size: 72px;
+    font-weight: 300;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+    color: #333333;
+    position: relative;
+}
+
+body.night-mode .game-logo {
+    color: #F2F2F2;
+}
+
+.game-logo::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 4px;
+    background: linear-gradient(90deg, #DD2515 0%, #2581C4 25%, #35AB52 50%, #F0AB00 75%, #00BFFF 100%);
+    border-radius: 2px;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 40px;
+}
+
+.menu-btn {
+    padding: 15px 50px;
+    font-size: 18px;
+    font-weight: 500;
+    background: white;
+    color: #333333;
+    border: 2px solid #D4D4D4;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 250px;
+}
+
+body.night-mode .menu-btn {
+    background: #353136;
+    color: #F2F2F2;
+    border-color: #747474;
+}
+
+.menu-btn:hover {
+    background: #80C3FF;
+    color: white;
+    border-color: #80C3FF;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(128, 195, 255, 0.3);
+}
+
+.menu-btn.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.menu-btn.locked:hover {
+    background: white;
+    color: #333333;
+    transform: none;
+    box-shadow: none;
+}
+
+body.night-mode .menu-btn.locked:hover {
+    background: #353136;
+    color: #F2F2F2;
+}
+
+/* City Selection */
+#city-select {
+    width: 100%;
+    max-width: 1200px;
+    padding: 40px;
+}
+
+.city-select-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.city-select-title {
+    font-size: 48px;
+    font-weight: 300;
+    margin-bottom: 10px;
+}
+
+.world-map {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    background: linear-gradient(180deg, #E8F4F8 0%, #D4E8F0 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+body.night-mode .world-map {
+    background: linear-gradient(180deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.city-marker {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.city-marker:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.city-marker.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #999 !important;
+}
+
+.city-marker.locked:hover {
+    transform: none;
+}
+
+.city-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.night-mode .city-tooltip {
+    background: #353136;
+    color: #F2F2F2;
+}
+
+.city-marker:hover .city-tooltip {
+    opacity: 1;
+}
+
+/* Mode Selection */
+.mode-selection {
+    display: flex;
+    gap: 20px;
+    margin-top: 40px;
+    justify-content: center;
+}
+
+.mode-card {
+    padding: 20px;
+    background: white;
+    border: 2px solid #D4D4D4;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    max-width: 200px;
+    text-align: center;
+}
+
+body.night-mode .mode-card {
+    background: #353136;
+    border-color: #747474;
+    color: #F2F2F2;
+}
+
+.mode-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.mode-card.selected {
+    border-color: #80C3FF;
+    background: #E8F4FF;
+}
+
+body.night-mode .mode-card.selected {
+    background: #1a3a50;
+    border-color: #80C3FF;
+}
+
+.mode-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.mode-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.mode-description {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* Achievement Notification */
+.achievement-notification {
+    position: fixed;
+    top: 20px;
+    right: -400px;
+    background: white;
+    border: 2px solid #35AB52;
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    transition: right 0.3s ease;
+    z-index: 1000;
+}
+
+body.night-mode .achievement-notification {
+    background: #353136;
+    color: #F2F2F2;
+}
+
+.achievement-notification.show {
+    right: 20px;
+}
+
+.achievement-icon {
+    font-size: 36px;
+}
+
+.achievement-title {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 4px;
+}
+
+.achievement-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Achievements Screen */
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.achievement-card {
+    background: white;
+    border: 2px solid #D4D4D4;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    transition: all 0.2s ease;
+}
+
+body.night-mode .achievement-card {
+    background: #353136;
+    border-color: #747474;
+}
+
+.achievement-card.unlocked {
+    border-color: #35AB52;
+    background: #F0FFF0;
+}
+
+body.night-mode .achievement-card.unlocked {
+    background: #1a3a1a;
+    border-color: #35AB52;
+}
+
+.achievement-card-icon {
+    font-size: 48px;
+    opacity: 0.3;
+}
+
+.achievement-card.unlocked .achievement-card-icon {
+    opacity: 1;
+}
+
+.achievement-info {
+    flex: 1;
+}
+
+.achievement-card-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.achievement-card-description {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-bottom: 12px;
+}
+
+.achievement-progress {
+    height: 4px;
+    background: #E0E0E0;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.achievement-progress-bar {
+    height: 100%;
+    background: #35AB52;
+    transition: width 0.3s ease;
+}
+
+/* Back Button */
+.back-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    background: white;
+    border: 2px solid #D4D4D4;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    z-index: 100;
+}
+
+body.night-mode .back-btn {
+    background: #353136;
+    color: #F2F2F2;
+    border-color: #747474;
+}
+
+.back-btn:hover {
+    background: #80C3FF;
+    color: white;
+    border-color: #80C3FF;
+    transform: translateX(4px);
+}
+
+/* Statistics Screen */
+.stats-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px;
+}
+
+.stats-title {
+    font-size: 36px;
+    font-weight: 300;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.stat-card {
+    background: white;
+    border: 2px solid #D4D4D4;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+body.night-mode .stat-card {
+    background: #353136;
+    border-color: #747474;
+}
+
+.stat-label {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 600;
+    color: #2581C4;
+}
+
+.leaderboard {
+    margin-top: 40px;
+}
+
+.leaderboard-title {
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+.leaderboard-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    background: white;
+    border: 1px solid #E0E0E0;
+    margin-bottom: 8px;
+    border-radius: 8px;
+}
+
+body.night-mode .leaderboard-entry {
+    background: #353136;
+    border-color: #555;
+}
+
+.leaderboard-rank {
+    font-weight: 600;
+    color: #F0AB00;
+}
+
+.leaderboard-name {
+    flex: 1;
+    margin: 0 20px;
+}
+
+.leaderboard-score {
+    font-weight: 600;
+    color: #2581C4;
+}

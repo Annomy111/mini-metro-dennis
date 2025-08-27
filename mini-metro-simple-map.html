@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Mini Metro - Debug Map</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #F4F4F4;
+            font-family: 'Helvetica Neue', Helvetica, sans-serif;
+        }
+        
+        #map-container {
+            width: 100vw;
+            height: 100vh;
+            background: #F4F4F4;
+        }
+        
+        .city-marker {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .city-marker:hover {
+            transform: scale(1.2);
+        }
+        
+        .tube-line {
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <svg width="100%" height="100%" viewBox="0 0 1200 700" style="background: #F4F4F4;">
+            <!-- Grid Pattern -->
+            <defs>
+                <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                    <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+            
+            <!-- Tube Lines -->
+            <!-- Red Line (Europe) -->
+            <line x1="500" y1="200" x2="500" y2="300" stroke="#DC241F" stroke-width="4" class="tube-line"/>
+            <line x1="500" y1="300" x2="600" y2="200" stroke="#DC241F" stroke-width="4" class="tube-line"/>
+            
+            <!-- Blue Line (Americas) -->
+            <line x1="200" y1="300" x2="300" y2="450" stroke="#0019A8" stroke-width="4" class="tube-line"/>
+            <line x1="300" y1="450" x2="150" y2="400" stroke="#0019A8" stroke-width="4" class="tube-line"/>
+            
+            <!-- Green Line (Asia) -->
+            <line x1="900" y1="300" x2="900" y2="200" stroke="#007D32" stroke-width="4" class="tube-line"/>
+            <line x1="900" y1="300" x2="800" y2="400" stroke="#007D32" stroke-width="4" class="tube-line"/>
+            
+            <!-- Cities/Stations -->
+            <g id="cities">
+                <!-- Europe (Red Line) -->
+                <g class="city-station">
+                    <circle cx="500" cy="200" r="12" fill="none" stroke="#DC241F" stroke-width="3"/>
+                    <circle cx="500" cy="200" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="500" y="180" text-anchor="middle" font-size="14" font-weight="600">LONDON</text>
+                </g>
+                
+                <g class="city-station">
+                    <circle cx="500" cy="300" r="12" fill="none" stroke="#DC241F" stroke-width="3"/>
+                    <circle cx="500" cy="300" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="500" y="330" text-anchor="middle" font-size="14" font-weight="600">PARIS</text>
+                </g>
+                
+                <g class="city-station">
+                    <circle cx="600" cy="200" r="12" fill="none" stroke="#DC241F" stroke-width="3"/>
+                    <circle cx="600" cy="200" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="600" y="180" text-anchor="middle" font-size="14" font-weight="600">BERLIN</text>
+                </g>
+                
+                <!-- Americas (Blue Line) -->
+                <g class="city-station">
+                    <circle cx="200" cy="300" r="12" fill="none" stroke="#0019A8" stroke-width="3"/>
+                    <circle cx="200" cy="300" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="200" y="280" text-anchor="middle" font-size="14" font-weight="600">NEW YORK</text>
+                </g>
+                
+                <g class="city-station">
+                    <circle cx="300" cy="450" r="12" fill="none" stroke="#0019A8" stroke-width="3"/>
+                    <circle cx="300" cy="450" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="300" y="480" text-anchor="middle" font-size="14" font-weight="600">RIO</text>
+                </g>
+                
+                <g class="city-station">
+                    <circle cx="150" cy="400" r="12" fill="none" stroke="#0019A8" stroke-width="3"/>
+                    <circle cx="150" cy="400" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="150" y="430" text-anchor="middle" font-size="14" font-weight="600">MEXICO</text>
+                </g>
+                
+                <!-- Asia (Green Line) -->
+                <g class="city-station">
+                    <circle cx="900" cy="300" r="12" fill="none" stroke="#007D32" stroke-width="3"/>
+                    <circle cx="900" cy="300" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="900" y="330" text-anchor="middle" font-size="14" font-weight="600">TOKYO</text>
+                </g>
+                
+                <g class="city-station">
+                    <circle cx="900" cy="200" r="12" fill="none" stroke="#007D32" stroke-width="3"/>
+                    <circle cx="900" cy="200" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="900" y="180" text-anchor="middle" font-size="14" font-weight="600">SEOUL</text>
+                </g>
+                
+                <g class="city-station">
+                    <circle cx="800" cy="400" r="12" fill="none" stroke="#007D32" stroke-width="3"/>
+                    <circle cx="800" cy="400" r="8" fill="#FFF" stroke="#000" stroke-width="2" class="city-marker"/>
+                    <text x="800" y="430" text-anchor="middle" font-size="14" font-weight="600">SINGAPORE</text>
+                </g>
+                
+                <!-- Locked Cities (grayed out) -->
+                <g class="city-station" opacity="0.4">
+                    <circle cx="900" cy="500" r="8" fill="#DDD" stroke="#999" stroke-width="2"/>
+                    <text x="900" y="530" text-anchor="middle" font-size="14" font-weight="400" fill="#999">SYDNEY</text>
+                </g>
+                
+                <g class="city-station" opacity="0.4">
+                    <circle cx="700" cy="250" r="8" fill="#DDD" stroke="#999" stroke-width="2"/>
+                    <text x="700" y="280" text-anchor="middle" font-size="14" font-weight="400" fill="#999">MOSCOW</text>
+                </g>
+            </g>
+        </svg>
+    </div>
+    
+    <script>
+        // Add click handlers
+        document.querySelectorAll('.city-marker').forEach(marker => {
+            marker.addEventListener('click', function() {
+                const cityName = this.parentElement.querySelector('text').textContent;
+                console.log('Selected city:', cityName);
+                
+                // Visual feedback
+                document.querySelectorAll('.city-marker').forEach(m => {
+                    m.style.fill = '#FFF';
+                });
+                this.style.fill = '#FFD700';
+            });
+        });
+        
+        console.log('✅ Simple map loaded successfully!');
+    </script>
+</body>
+</html>

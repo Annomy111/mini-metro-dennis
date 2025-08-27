@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Metro - Premium Edition</title>
+    <link rel="stylesheet" href="mini-metro-enhanced.css">
+    <style>
+        /* Beautiful World Map Styles */
+        .world-map-container {
+            flex: 1;
+            background: linear-gradient(180deg, #E8F4F8 0%, #D6E8F0 100%);
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.1),
+                inset 0 1px 3px rgba(255, 255, 255, 0.5);
+        }
+        
+        .world-map-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.05));
+        }
+        
+        /* Beautiful continents */
+        .continent {
+            fill: #F0F7FA;
+            stroke: #B8D4E3;
+            stroke-width: 2;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        
+        .continent:hover {
+            fill: #E1F0F7;
+            transform: translateY(-2px);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+        }
+        
+        .ocean {
+            fill: url(#oceanGradient);
+        }
+        
+        /* City markers */
+        .city-marker {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+        
+        .city-marker:hover {
+            transform: scale(1.3);
+            filter: drop-shadow(0 0 10px rgba(221, 37, 21, 0.5));
+        }
+        
+        .city-marker.locked {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .city-marker.locked:hover {
+            transform: scale(1);
+            filter: none;
+        }
+        
+        .city-dot {
+            stroke-width: 3;
+            transition: all 0.3s ease;
+        }
+        
+        .city-dot.unlocked {
+            fill: #DD2515;
+            stroke: #FFFFFF;
+            animation: cityPulse 2s ease-in-out infinite;
+        }
+        
+        .city-dot.locked {
+            fill: #94A3B8;
+            stroke: #E2E8F0;
+        }
+        
+        .city-dot.completed {
+            fill: #35AB52;
+            stroke: #FFFFFF;
+        }
+        
+        .city-dot.selected {
+            fill: #2581C4;
+            stroke: #FFFFFF;
+            stroke-width: 4;
+            animation: selectedPulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes cityPulse {
+            0%, 100% { r: 8; opacity: 1; }
+            50% { r: 10; opacity: 0.8; }
+        }
+        
+        @keyframes selectedPulse {
+            0%, 100% { 
+                r: 10; 
+                stroke-width: 4;
+                filter: drop-shadow(0 0 10px rgba(37, 129, 196, 0.8));
+            }
+            50% { 
+                r: 12; 
+                stroke-width: 5;
+                filter: drop-shadow(0 0 20px rgba(37, 129, 196, 0.8));
+            }
+        }
+        
+        .city-name {
+            font-size: 11px;
+            font-weight: 700;
+            fill: #1F2937;
+            text-anchor: middle;
+            pointer-events: none;
+            text-shadow: 
+                1px 1px 2px rgba(255, 255, 255, 0.8),
+                -1px -1px 2px rgba(255, 255, 255, 0.8);
+        }
+        
+        /* Connection lines */
+        .city-connection {
+            stroke: #2581C4;
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+            opacity: 0.4;
+            animation: connectionFlow 15s linear infinite;
+        }
+        
+        @keyframes connectionFlow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -100; }
+        }
+        
+        /* City detail panel improvements */
+        .city-detail-panel {
+            background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFB 100%);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.1),
+                inset 0 1px 3px rgba(255, 255, 255, 0.5);
+        }
+        
+        .city-preview canvas {
+            background: linear-gradient(180deg, #F0F7FA 0%, #E1F0F7 100%);
+            border: 2px solid #D4E6F1;
+        }
+        
+        /* Grid view improvements */
+        .city-grid-card {
+            background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFB 100%);
+            border: 2px solid #E2E8F0;
+            border-radius: 16px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            height: 200px;
+        }
+        
+        .city-grid-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(37, 129, 196, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .city-grid-card:hover::before {
+            left: 100%;
+        }
+        
+        .city-grid-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            border-color: #2581C4;
+        }
+        
+        .city-grid-card.locked {
+            background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .city-grid-card.locked:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Debug panel */
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00FF00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            z-index: 10000;
+            min-width: 200px;
+            display: none;
+        }
+        
+        .debug-panel.active {
+            display: block;
+        }
+        
+        .debug-line {
+            margin: 2px 0;
+        }
+        
+        /* Selection indicator */
+        .selection-indicator {
+            position: absolute;
+            border: 3px solid #2581C4;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: selectionRing 1s ease-in-out infinite;
+        }
+        
+        @keyframes selectionRing {
+            0% { 
+                width: 30px; 
+                height: 30px; 
+                opacity: 0;
+            }
+            50% { 
+                width: 50px; 
+                height: 50px; 
+                opacity: 1;
+            }
+            100% { 
+                width: 70px; 
+                height: 70px; 
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-animation">
+            <div class="metro-line line-1"></div>
+            <div class="metro-line line-2"></div>
+            <div class="metro-line line-3"></div>
+            <div class="station-dot dot-1"></div>
+            <div class="station-dot dot-2"></div>
+            <div class="station-dot dot-3"></div>
+        </div>
+        <div class="loading-text">LOADING</div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen active">
+        <div class="menu-container">
+            <div class="logo-section">
+                <h1 class="game-logo">
+                    <span class="logo-mini">MINI</span>
+                    <span class="logo-metro">METRO</span>
+                </h1>
+                <div class="logo-underline"></div>
+                <p class="game-tagline">Mind the Gap</p>
+            </div>
+            
+            <nav class="menu-nav">
+                <button class="menu-item" id="play-btn">
+                    <span class="menu-icon">▶</span>
+                    <span class="menu-text">PLAY</span>
+                    <span class="menu-arrow">→</span>
+                </button>
+                <button class="menu-item daily" id="daily-btn">
+                    <span class="menu-icon">📅</span>
+                    <span class="menu-text">DAILY CHALLENGE</span>
+                    <span class="menu-badge">NEW</span>
+                </button>
+                <button class="menu-item">
+                    <span class="menu-icon">🏆</span>
+                    <span class="menu-text">ACHIEVEMENTS</span>
+                    <span class="menu-progress">67%</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- City Selection -->
+    <div id="city-select" class="screen">
+        <header class="screen-header">
+            <button class="back-btn" id="back-to-menu">
+                <span class="back-icon">←</span>
+                <span class="back-text">BACK</span>
+            </button>
+            <div class="header-info">
+                <h2 class="screen-title">SELECT DESTINATION</h2>
+                <div class="unlock-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <span class="progress-text" id="progress-text">Loading...</span>
+                </div>
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" id="view-map">🗺 Map</button>
+                <button class="view-btn" id="view-grid">⊞ Grid</button>
+            </div>
+        </header>
+
+        <!-- World Map View -->
+        <div id="world-map-view" class="city-view active">
+            <div class="world-map-container">
+                <svg id="world-map" class="world-map-svg" viewBox="0 0 1000 500">
+                    <defs>
+                        <linearGradient id="oceanGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#E8F4F8;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#D6E8F0;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="landShadow">
+                            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                            <feOffset dx="2" dy="2" result="offsetblur"/>
+                            <feComponentTransfer>
+                                <feFuncA type="linear" slope="0.2"/>
+                            </feComponentTransfer>
+                            <feMerge> 
+                                <feMergeNode/>
+                                <feMergeNode in="SourceGraphic"/> 
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    
+                    <!-- Ocean background -->
+                    <rect width="1000" height="500" class="ocean"/>
+                    
+                    <!-- Continents with better shapes -->
+                    <g id="continents">
+                        <!-- North America -->
+                        <path class="continent" d="M150,150 Q180,120 220,130 L250,140 L280,160 L300,180 L290,220 L270,250 L240,260 L200,240 L170,200 L150,170 Z" filter="url(#landShadow)"/>
+                        
+                        <!-- South America -->
+                        <path class="continent" d="M220,280 L240,270 L260,290 L270,320 L265,360 L250,400 L230,420 L210,410 L200,380 L205,340 L210,300 Z" filter="url(#landShadow)"/>
+                        
+                        <!-- Europe -->
+                        <path class="continent" d="M450,120 L480,115 L510,125 L530,140 L520,160 L500,170 L480,165 L460,155 L450,140 Z" filter="url(#landShadow)"/>
+                        
+                        <!-- Africa -->
+                        <path class="continent" d="M470,200 L490,190 L510,200 L520,230 L515,270 L505,310 L490,340 L470,350 L455,330 L450,300 L455,260 L460,220 Z" filter="url(#landShadow)"/>
+                        
+                        <!-- Asia -->
+                        <path class="continent" d="M550,110 L650,100 L720,120 L750,150 L740,180 L700,200 L650,190 L600,180 L570,160 L560,130 Z" filter="url(#landShadow)"/>
+                        
+                        <!-- Oceania -->
+                        <path class="continent" d="M700,350 L740,345 L760,360 L755,380 L735,385 L715,375 L705,360 Z" filter="url(#landShadow)"/>
+                    </g>
+                    
+                    <!-- Connections -->
+                    <g id="connections"></g>
+                    
+                    <!-- Cities -->
+                    <g id="cities"></g>
+                </svg>
+                
+                <!-- Selection indicator -->
+                <div class="selection-indicator" id="selection-indicator" style="display: none;"></div>
+            </div>
+            
+            <!-- City Detail Panel -->
+            <div class="city-detail-panel">
+                <div class="city-detail-header">
+                    <h3 class="city-name" id="city-name">SELECT A CITY</h3>
+                    <span class="city-difficulty" id="city-difficulty">●●●○○</span>
+                </div>
+                <div class="city-preview">
+                    <canvas id="city-preview" width="300" height="150"></canvas>
+                </div>
+                <div class="city-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">TARGET</span>
+                        <span class="stat-value" id="city-target">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">HIGHSCORE</span>
+                        <span class="stat-value" id="city-highscore">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">STARS</span>
+                        <span class="stat-value" id="city-stars">☆☆☆</span>
+                    </div>
+                </div>
+                <button class="play-city-btn" id="play-city" disabled>SELECT CITY FIRST</button>
+            </div>
+        </div>
+
+        <!-- Grid View -->
+        <div id="grid-view" class="city-view">
+            <div class="cities-grid" id="cities-grid"></div>
+        </div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="mode-select" class="screen">
+        <header class="screen-header">
+            <button class="back-btn" id="back-to-city">
+                <span class="back-icon">←</span>
+                <span class="back-text">BACK</span>
+            </button>
+            <div class="selected-city-info">
+                <h2 id="mode-city-name">CITY</h2>
+                <p id="mode-city-desc">Description</p>
+            </div>
+        </header>
+
+        <div class="modes-container">
+            <div class="mode-card" id="mode-normal">
+                <div class="mode-icon">🎯</div>
+                <h3 class="mode-name">NORMAL</h3>
+                <p class="mode-description">Build an efficient network</p>
+                <button class="select-mode-btn">PLAY</button>
+            </div>
+            <div class="mode-card" id="mode-endless">
+                <div class="mode-icon">∞</div>
+                <h3 class="mode-name">ENDLESS</h3>
+                <p class="mode-description">Relax without pressure</p>
+                <button class="select-mode-btn">PLAY</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas" style="display: none;"></canvas>
+    <div id="game-ui" style="display: none;">
+        <button class="game-menu-btn" id="exit-game">← MENU</button>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debug">
+        <div class="debug-line">Click: <span id="debug-click">-</span></div>
+        <div class="debug-line">City: <span id="debug-city">-</span></div>
+        <div class="debug-line">Mode: <span id="debug-mode">-</span></div>
+        <div class="debug-line">Screen: <span id="debug-screen">-</span></div>
+    </div>
+
+    <script src="city-maps.js"></script>
+    <script src="game-realistic.js"></script>
+    <script>
+        // Premium Mini Metro Implementation
+        class PremiumMiniMetro {
+            constructor() {
+                this.cities = [
+                    { id: 'london', name: 'LONDON', x: 485, y: 145, unlocked: true, target: 750, highscore: 0, stars: 0, difficulty: 3 },
+                    { id: 'paris', name: 'PARIS', x: 470, y: 155, unlocked: true, target: 750, highscore: 0, stars: 0, difficulty: 3 },
+                    { id: 'newyork', name: 'NEW YORK', x: 240, y: 170, unlocked: true, target: 750, highscore: 0, stars: 0, difficulty: 4 },
+                    { id: 'berlin', name: 'BERLIN', x: 500, y: 140, unlocked: false, target: 800, requires: 'london', highscore: 0, stars: 0, difficulty: 4 },
+                    { id: 'tokyo', name: 'TOKYO', x: 720, y: 165, unlocked: false, target: 900, requires: 'paris', highscore: 0, stars: 0, difficulty: 5 },
+                    { id: 'sydney', name: 'SYDNEY', x: 730, y: 370, unlocked: false, target: 850, requires: 'newyork', highscore: 0, stars: 0, difficulty: 4 },
+                    { id: 'cairo', name: 'CAIRO', x: 490, y: 250, unlocked: false, target: 950, requires: 'berlin', highscore: 0, stars: 0, difficulty: 3 },
+                    { id: 'mumbai', name: 'MUMBAI', x: 610, y: 230, unlocked: false, target: 1000, requires: 'tokyo', highscore: 0, stars: 0, difficulty: 5 },
+                    { id: 'rio', name: 'RIO', x: 250, y: 370, unlocked: false, target: 900, requires: 'sydney', highscore: 0, stars: 0, difficulty: 4 },
+                    { id: 'moscow', name: 'MOSCOW', x: 540, y: 125, unlocked: false, target: 1100, requires: 'cairo', highscore: 0, stars: 0, difficulty: 4 }
+                ];
+                
+                this.selectedCity = null;
+                this.selectedMode = null;
+                this.currentScreen = 'main-menu';
+                this.debugMode = false;
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('🚇 Premium Mini Metro starting...');
+                this.setupEventListeners();
+                this.loadProgress();
+                this.renderWorldMap();
+                this.updateProgress();
+                this.hideLoading();
+                
+                // Enable debug with Ctrl+D
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'd') {
+                        this.toggleDebug();
+                    }
+                });
+            }
+            
+            setupEventListeners() {
+                // Menu navigation
+                document.getElementById('play-btn').addEventListener('click', () => {
+                    console.log('Play clicked');
+                    this.showScreen('city-select');
+                });
+                
+                document.getElementById('daily-btn').addEventListener('click', () => {
+                    console.log('Daily challenge clicked');
+                    this.selectedCity = this.cities[0];
+                    this.selectedMode = 'daily';
+                    this.startGame();
+                });
+                
+                document.getElementById('back-to-menu').addEventListener('click', () => {
+                    this.showScreen('main-menu');
+                });
+                
+                document.getElementById('back-to-city').addEventListener('click', () => {
+                    this.showScreen('city-select');
+                });
+                
+                // View toggle
+                document.getElementById('view-map').addEventListener('click', () => {
+                    this.setView('map');
+                });
+                
+                document.getElementById('view-grid').addEventListener('click', () => {
+                    this.setView('grid');
+                });
+                
+                // Play city button
+                document.getElementById('play-city').addEventListener('click', () => {
+                    if (this.selectedCity) {
+                        this.showScreen('mode-select');
+                    }
+                });
+                
+                // Mode selection
+                document.getElementById('mode-normal').addEventListener('click', () => {
+                    this.selectedMode = 'normal';
+                    this.startGame();
+                });
+                
+                document.getElementById('mode-endless').addEventListener('click', () => {
+                    this.selectedMode = 'endless';
+                    this.startGame();
+                });
+                
+                // Exit game
+                document.getElementById('exit-game').addEventListener('click', () => {
+                    this.exitGame();
+                });
+            }
+            
+            renderWorldMap() {
+                const svg = document.getElementById('world-map');
+                const connectionsGroup = document.getElementById('connections');
+                const citiesGroup = document.getElementById('cities');
+                
+                // Clear existing
+                connectionsGroup.innerHTML = '';
+                citiesGroup.innerHTML = '';
+                
+                // Draw connections
+                this.cities.forEach(city => {
+                    if (city.unlocked && city.requires) {
+                        const fromCity = this.cities.find(c => c.id === city.requires);
+                        if (fromCity && fromCity.unlocked) {
+                            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                            line.classList.add('city-connection');
+                            line.setAttribute('x1', fromCity.x);
+                            line.setAttribute('y1', fromCity.y);
+                            line.setAttribute('x2', city.x);
+                            line.setAttribute('y2', city.y);
+                            connectionsGroup.appendChild(line);
+                        }
+                    }
+                });
+                
+                // Draw cities
+                this.cities.forEach(city => {
+                    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    g.classList.add('city-marker');
+                    if (!city.unlocked) g.classList.add('locked');
+                    g.setAttribute('data-city', city.id);
+                    
+                    // City dot
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.classList.add('city-dot');
+                    if (city.unlocked) circle.classList.add('unlocked');
+                    if (!city.unlocked) circle.classList.add('locked');
+                    if (city.stars === 3) circle.classList.add('completed');
+                    circle.setAttribute('cx', city.x);
+                    circle.setAttribute('cy', city.y);
+                    circle.setAttribute('r', 8);
+                    
+                    // City name
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.classList.add('city-name');
+                    text.setAttribute('x', city.x);
+                    text.setAttribute('y', city.y + 22);
+                    text.textContent = city.name;
+                    
+                    g.appendChild(circle);
+                    g.appendChild(text);
+                    
+                    // Add click handler
+                    if (city.unlocked) {
+                        g.style.cursor = 'pointer';
+                        g.addEventListener('click', (e) => {
+                            console.log(`City clicked: ${city.name}`);
+                            this.selectCity(city);
+                            
+                            // Visual feedback
+                            document.querySelectorAll('.city-dot').forEach(dot => {
+                                dot.classList.remove('selected');
+                            });
+                            circle.classList.add('selected');
+                        });
+                        
+                        g.addEventListener('mouseenter', () => {
+                            this.previewCity(city);
+                        });
+                    }
+                    
+                    citiesGroup.appendChild(g);
+                });
+            }
+            
+            selectCity(city) {
+                this.selectedCity = city;
+                this.updateDebug('City selected', city.name);
+                
+                // Update detail panel
+                document.getElementById('city-name').textContent = city.name;
+                document.getElementById('city-target').textContent = city.target;
+                document.getElementById('city-highscore').textContent = city.highscore || '-';
+                
+                // Stars
+                const stars = ['★', '★', '★'].map((s, i) => i < city.stars ? '★' : '☆').join('');
+                document.getElementById('city-stars').textContent = stars;
+                
+                // Difficulty
+                const diff = ['●', '●', '●', '●', '●'].map((d, i) => i < city.difficulty ? '●' : '○').join('');
+                document.getElementById('city-difficulty').textContent = diff;
+                
+                // Enable play button
+                const playBtn = document.getElementById('play-city');
+                playBtn.disabled = false;
+                playBtn.textContent = `PLAY ${city.name}`;
+                
+                this.drawCityPreview(city);
+            }
+            
+            previewCity(city) {
+                this.drawCityPreview(city);
+            }
+            
+            drawCityPreview(city) {
+                const canvas = document.getElementById('city-preview');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.strokeStyle = '#2581C4';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.globalAlpha = 0.6;
+                
+                // Draw river based on city
+                ctx.beginPath();
+                if (city.id === 'london') {
+                    ctx.moveTo(0, 75);
+                    ctx.bezierCurveTo(100, 50, 200, 100, 300, 75);
+                } else if (city.id === 'paris') {
+                    ctx.moveTo(0, 75);
+                    ctx.quadraticCurveTo(150, 40, 300, 75);
+                } else if (city.id === 'newyork') {
+                    ctx.moveTo(100, 0);
+                    ctx.lineTo(100, 150);
+                    ctx.moveTo(200, 0);
+                    ctx.lineTo(200, 150);
+                } else if (city.id === 'berlin') {
+                    ctx.moveTo(0, 60);
+                    ctx.bezierCurveTo(150, 90, 150, 60, 300, 90);
+                } else {
+                    ctx.moveTo(0, 75);
+                    ctx.lineTo(300, 75);
+                }
+                ctx.stroke();
+            }
+            
+            setView(view) {
+                document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(`view-${view}`).classList.add('active');
+                
+                document.querySelectorAll('.city-view').forEach(v => v.classList.remove('active'));
+                
+                if (view === 'grid') {
+                    document.getElementById('grid-view').classList.add('active');
+                    this.renderCityGrid();
+                } else {
+                    document.getElementById('world-map-view').classList.add('active');
+                }
+            }
+            
+            renderCityGrid() {
+                const grid = document.getElementById('cities-grid');
+                grid.innerHTML = '';
+                
+                this.cities.forEach(city => {
+                    const card = document.createElement('div');
+                    card.className = 'city-grid-card';
+                    if (!city.unlocked) card.classList.add('locked');
+                    
+                    const stars = ['★', '★', '★'].map((s, i) => 
+                        `<span style="color: ${i < city.stars ? '#FFD700' : '#E0E0E0'}">${s}</span>`
+                    ).join('');
+                    
+                    card.innerHTML = `
+                        <h3>${city.name}</h3>
+                        <div style="margin: 20px 0;">
+                            <div>🎯 Target: ${city.target}</div>
+                            <div>🏆 Best: ${city.highscore || '-'}</div>
+                        </div>
+                        <div>${stars}</div>
+                    `;
+                    
+                    if (city.unlocked) {
+                        card.addEventListener('click', () => {
+                            this.selectedCity = city;
+                            this.showScreen('mode-select');
+                        });
+                    }
+                    
+                    grid.appendChild(card);
+                });
+            }
+            
+            showScreen(screenId) {
+                console.log(`Showing screen: ${screenId}`);
+                this.currentScreen = screenId;
+                this.updateDebug('Screen', screenId);
+                
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                const screen = document.getElementById(screenId);
+                if (screen) {
+                    screen.classList.add('active');
+                }
+                
+                if (screenId === 'mode-select' && this.selectedCity) {
+                    document.getElementById('mode-city-name').textContent = this.selectedCity.name;
+                    document.getElementById('mode-city-desc').textContent = 
+                        `Transport ${this.selectedCity.target} passengers`;
+                }
+            }
+            
+            startGame() {
+                console.log(`Starting game: ${this.selectedCity.name} - ${this.selectedMode}`);
+                
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById('gameCanvas').style.display = 'block';
+                document.getElementById('game-ui').style.display = 'block';
+                
+                if (typeof MiniMetro !== 'undefined') {
+                    if (!window.game) {
+                        window.game = new MiniMetro();
+                    }
+                    window.game.currentCity = this.selectedCity.id;
+                    window.game.currentMode = this.selectedMode;
+                    window.game.restart();
+                    console.log('✅ Game started!');
+                } else {
+                    console.error('❌ MiniMetro not loaded!');
+                    alert('Game engine not loaded. Please refresh.');
+                }
+            }
+            
+            exitGame() {
+                document.getElementById('gameCanvas').style.display = 'none';
+                document.getElementById('game-ui').style.display = 'none';
+                this.showScreen('main-menu');
+                
+                if (window.game) {
+                    window.game.paused = true;
+                }
+            }
+            
+            loadProgress() {
+                const saved = localStorage.getItem('miniMetroProgress');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.cities.forEach(city => {
+                            if (data[city.id]) {
+                                Object.assign(city, data[city.id]);
+                            }
+                        });
+                    } catch (e) {
+                        console.error('Failed to load progress:', e);
+                    }
+                }
+                
+                // Check unlock conditions
+                this.cities.forEach(city => {
+                    if (city.requires && !city.unlocked) {
+                        const req = this.cities.find(c => c.id === city.requires);
+                        if (req && req.highscore >= req.target) {
+                            city.unlocked = true;
+                            console.log(`Unlocked: ${city.name}`);
+                        }
+                    }
+                });
+            }
+            
+            saveProgress() {
+                const data = {};
+                this.cities.forEach(city => {
+                    data[city.id] = {
+                        unlocked: city.unlocked,
+                        highscore: city.highscore,
+                        stars: city.stars
+                    };
+                });
+                localStorage.setItem('miniMetroProgress', JSON.stringify(data));
+            }
+            
+            updateProgress() {
+                const unlocked = this.cities.filter(c => c.unlocked).length;
+                const total = this.cities.length;
+                const percent = (unlocked / total) * 100;
+                
+                document.getElementById('progress-fill').style.width = percent + '%';
+                document.getElementById('progress-text').textContent = 
+                    `${unlocked} of ${total} Cities Unlocked`;
+            }
+            
+            hideLoading() {
+                setTimeout(() => {
+                    const loading = document.getElementById('loading-screen');
+                    loading.style.opacity = '0';
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 300);
+                }, 1000);
+            }
+            
+            toggleDebug() {
+                this.debugMode = !this.debugMode;
+                document.getElementById('debug').classList.toggle('active');
+            }
+            
+            updateDebug(key, value) {
+                if (this.debugMode) {
+                    const el = document.getElementById(`debug-${key.toLowerCase()}`);
+                    if (el) el.textContent = value;
+                }
+            }
+        }
+        
+        // Start app
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new PremiumMiniMetro();
+            console.log('✅ Premium Mini Metro loaded!');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Metro</title>
+    <link rel="stylesheet" href="mini-metro.css">
+</head>
+<body>
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen active">
+        <div class="logo-container">
+            <h1 class="game-logo">MINI METRO</h1>
+            <p class="game-subtitle">MIND THE GAP</p>
+        </div>
+        <div class="menu-buttons">
+            <button class="menu-btn" onclick="showCitySelect()">PLAY</button>
+            <button class="menu-btn" onclick="showDailyChallenge()">DAILY CHALLENGE</button>
+            <button class="menu-btn" onclick="showAchievements()">ACHIEVEMENTS</button>
+            <button class="menu-btn" onclick="showSettings()">SETTINGS</button>
+        </div>
+    </div>
+
+    <!-- City Selection -->
+    <div id="city-select" class="screen">
+        <button class="back-btn" onclick="showMainMenu()">← BACK</button>
+        
+        <div class="city-select-header">
+            <h2 class="city-select-title">SELECT CITY</h2>
+            <div class="progress-info">
+                <div class="cities-unlocked">12 / 34 Cities Unlocked</div>
+                <div class="next-unlock">Next: 847 / 900 passengers in Berlin</div>
+            </div>
+        </div>
+        
+        <div class="city-grid" id="city-grid">
+            <!-- Cities will be generated here -->
+        </div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="mode-select" class="screen">
+        <button class="back-btn" onclick="showCitySelect()">← BACK</button>
+        
+        <div class="mode-header">
+            <h2 class="selected-city" id="selected-city-name">LONDON</h2>
+            <p class="city-description" id="city-description">Cross the Thames and connect historic London</p>
+        </div>
+        
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="selectMode('normal')">NORMAL</button>
+            <button class="mode-tab" onclick="selectMode('endless')">ENDLESS</button>
+            <button class="mode-tab locked" onclick="selectMode('extreme')">EXTREME</button>
+            <button class="mode-tab locked" onclick="selectMode('creative')">CREATIVE</button>
+        </div>
+        
+        <div class="mode-details">
+            <h3 class="mode-title" id="mode-title">NORMAL MODE</h3>
+            <p class="mode-description" id="mode-description">
+                Build an efficient network for a rapidly growing city. 
+                Keep stations from overcrowding to continue. 
+                Earn upgrades each week to expand your network.
+            </p>
+            
+            <div class="mode-objectives">
+                <div class="objective">
+                    <span class="objective-icon">🎯</span>
+                    <span class="objective-text">Transport <span class="objective-target">750</span> passengers</span>
+                </div>
+                <div class="objective">
+                    <span class="objective-icon">⭐</span>
+                    <span class="objective-text">Unlock next city</span>
+                </div>
+                <div class="objective">
+                    <span class="objective-icon">🏆</span>
+                    <span class="objective-text">Beat highscore: <span class="objective-target">2,847</span></span>
+                </div>
+            </div>
+            
+            <button class="play-button" onclick="startGame()">START</button>
+        </div>
+    </div>
+
+    <!-- Leaderboard Panel -->
+    <div class="leaderboard-panel" id="leaderboard-panel">
+        <div class="leaderboard-header">
+            <h3 class="leaderboard-title">LEADERBOARD</h3>
+            <div class="leaderboard-tabs">
+                <button class="leaderboard-tab active">GLOBAL</button>
+                <button class="leaderboard-tab">FRIENDS</button>
+                <button class="leaderboard-tab">TODAY</button>
+            </div>
+        </div>
+        
+        <div class="leaderboard-entries" id="leaderboard-entries">
+            <!-- Leaderboard entries will be generated here -->
+        </div>
+    </div>
+
+    <!-- Game Canvas (hidden initially) -->
+    <canvas id="gameCanvas" style="display: none;"></canvas>
+    
+    <!-- Game UI Overlay (hidden initially) -->
+    <div id="game-ui" style="display: none;">
+        <button class="back-btn" onclick="exitToMenu()">← MENU</button>
+        <!-- Game controls will be added here -->
+    </div>
+
+    <script src="city-maps.js"></script>
+    <script>
+        // City database with unlock requirements
+        const cities = [
+            // Starting cities
+            { id: 'london', name: 'LONDON', unlocked: true, target: 750, highscore: 0, stars: 0, river: 'thames' },
+            { id: 'paris', name: 'PARIS', unlocked: true, target: 750, highscore: 0, stars: 0, river: 'seine' },
+            { id: 'newyork', name: 'NEW YORK', unlocked: true, target: 750, highscore: 0, stars: 0, river: 'hudson-east' },
+            
+            // Unlockable cities
+            { id: 'berlin', name: 'BERLIN', unlocked: false, target: 750, requires: 'london', highscore: 0, stars: 0, river: 'spree' },
+            { id: 'hongkong', name: 'HONG KONG', unlocked: false, target: 750, requires: 'paris', highscore: 0, stars: 0 },
+            { id: 'osaka', name: 'OSAKA', unlocked: false, target: 750, requires: 'newyork', highscore: 0, stars: 0 },
+            { id: 'saopaulo', name: 'SÃO PAULO', unlocked: false, target: 900, requires: 'berlin', highscore: 0, stars: 0 },
+            { id: 'petersburg', name: 'ST PETERSBURG', unlocked: false, target: 900, requires: 'hongkong', highscore: 0, stars: 0 },
+            { id: 'montreal', name: 'MONTREAL', unlocked: false, target: 900, requires: 'osaka', highscore: 0, stars: 0 },
+            { id: 'sanfrancisco', name: 'SAN FRANCISCO', unlocked: false, target: 1000, requires: 'saopaulo', highscore: 0, stars: 0 },
+            { id: 'cairo', name: 'CAIRO', unlocked: false, target: 1000, requires: 'petersburg', highscore: 0, stars: 0 },
+            { id: 'istanbul', name: 'ISTANBUL', unlocked: false, target: 1000, requires: 'montreal', highscore: 0, stars: 0 },
+            { id: 'shanghai', name: 'SHANGHAI', unlocked: false, target: 1100, requires: 'sanfrancisco', highscore: 0, stars: 0 },
+            { id: 'singapore', name: 'SINGAPORE', unlocked: false, target: 1100, requires: 'cairo', highscore: 0, stars: 0 },
+            { id: 'stockholm', name: 'STOCKHOLM', unlocked: false, target: 1100, requires: 'istanbul', highscore: 0, stars: 0 },
+            { id: 'mumbai', name: 'MUMBAI', unlocked: false, target: 1200, requires: 'shanghai', highscore: 0, stars: 0 },
+            { id: 'auckland', name: 'AUCKLAND', unlocked: false, target: 1200, requires: 'singapore', highscore: 0, stars: 0 },
+            { id: 'seoul', name: 'SEOUL', unlocked: false, target: 1200, requires: 'stockholm', highscore: 0, stars: 0 },
+            { id: 'washington', name: 'WASHINGTON DC', unlocked: false, target: 1300, requires: 'mumbai', highscore: 0, stars: 0 },
+            { id: 'prague', name: 'PRAGUE', unlocked: false, target: 1300, requires: 'auckland', highscore: 0, stars: 0 },
+            { id: 'melbourne', name: 'MELBOURNE', unlocked: false, target: 1300, requires: 'seoul', highscore: 0, stars: 0 },
+            { id: 'taipei', name: 'TAIPEI', unlocked: false, target: 1400, requires: 'washington', highscore: 0, stars: 0 },
+            { id: 'lisbon', name: 'LISBON', unlocked: false, target: 1400, requires: 'prague', highscore: 0, stars: 0 },
+            { id: 'guangzhou', name: 'GUANGZHOU', unlocked: false, target: 1400, requires: 'melbourne', highscore: 0, stars: 0 },
+            { id: 'tokyo', name: 'TOKYO', unlocked: false, target: 1500, requires: 'taipei', highscore: 0, stars: 0 },
+            { id: 'warsaw', name: 'WARSAW', unlocked: false, target: 1500, requires: 'lisbon', highscore: 0, stars: 0 },
+            { id: 'bangkok', name: 'BANGKOK', unlocked: false, target: 1500, requires: 'guangzhou', highscore: 0, stars: 0 },
+            { id: 'dubai', name: 'DUBAI', unlocked: false, target: 1600, requires: 'tokyo', highscore: 0, stars: 0 },
+            { id: 'bucharest', name: 'BUCHAREST', unlocked: false, target: 1600, requires: 'warsaw', highscore: 0, stars: 0 },
+            { id: 'budapest', name: 'BUDAPEST', unlocked: false, target: 1600, requires: 'bangkok', highscore: 0, stars: 0 },
+            { id: 'mexico', name: 'MEXICO CITY', unlocked: false, target: 1700, requires: 'dubai', highscore: 0, stars: 0 },
+            { id: 'lagos', name: 'LAGOS', unlocked: false, target: 1700, requires: 'bucharest', highscore: 0, stars: 0 },
+            { id: 'jakarta', name: 'JAKARTA', unlocked: false, target: 1700, requires: 'budapest', highscore: 0, stars: 0 },
+            { id: 'changchun', name: 'CHANGCHUN', unlocked: false, target: 1800, requires: 'mexico', highscore: 0, stars: 0 }
+        ];
+        
+        let selectedCity = null;
+        let selectedMode = 'normal';
+        
+        // Load saved progress
+        function loadProgress() {
+            const saved = localStorage.getItem('miniMetroProgress');
+            if (saved) {
+                const progress = JSON.parse(saved);
+                cities.forEach(city => {
+                    if (progress[city.id]) {
+                        city.highscore = progress[city.id].highscore || 0;
+                        city.stars = progress[city.id].stars || 0;
+                        
+                        // Check unlock conditions
+                        if (city.requires && progress[city.requires]) {
+                            if (progress[city.requires].highscore >= cities.find(c => c.id === city.requires).target) {
+                                city.unlocked = true;
+                            }
+                        }
+                    }
+                });
+            }
+            updateUnlockCount();
+        }
+        
+        // Save progress
+        function saveProgress() {
+            const progress = {};
+            cities.forEach(city => {
+                progress[city.id] = {
+                    highscore: city.highscore,
+                    stars: city.stars,
+                    unlocked: city.unlocked
+                };
+            });
+            localStorage.setItem('miniMetroProgress', JSON.stringify(progress));
+        }
+        
+        // Update unlock count
+        function updateUnlockCount() {
+            const unlocked = cities.filter(c => c.unlocked).length;
+            const total = cities.length;
+            document.querySelector('.cities-unlocked').textContent = `${unlocked} / ${total} Cities Unlocked`;
+            
+            // Find next unlock
+            const locked = cities.find(c => !c.unlocked && c.requires);
+            if (locked) {
+                const required = cities.find(c => c.id === locked.requires);
+                if (required) {
+                    const progress = required.highscore;
+                    const target = required.target;
+                    document.querySelector('.next-unlock').textContent = 
+                        `Next: ${progress} / ${target} passengers in ${required.name}`;
+                }
+            }
+        }
+        
+        // Generate city cards
+        function generateCityCards() {
+            const grid = document.getElementById('city-grid');
+            grid.innerHTML = '';
+            
+            // Add daily challenge card
+            const dailyCard = document.createElement('div');
+            dailyCard.className = 'city-card daily-challenge-card';
+            dailyCard.innerHTML = `
+                <div class="city-name">DAILY CHALLENGE</div>
+                <div class="city-preview">
+                    <div class="river-preview ${cities[Math.floor(Math.random() * 3)].river || ''}"></div>
+                </div>
+                <div class="challenge-timer">Ends in 14:32:15</div>
+                <div class="city-stats">
+                    <span class="unlock-target">🏆 Leaderboard</span>
+                    <span class="highscore">Best: #42</span>
+                </div>
+            `;
+            dailyCard.onclick = () => showDailyChallenge();
+            grid.appendChild(dailyCard);
+            
+            // Add city cards
+            cities.forEach(city => {
+                const card = document.createElement('div');
+                card.className = `city-card ${city.unlocked ? '' : 'locked'}`;
+                
+                const stars = Array(3).fill('').map((_, i) => 
+                    `<span class="star ${i < city.stars ? '' : 'empty'}">★</span>`
+                ).join('');
+                
+                card.innerHTML = `
+                    <div class="city-name">${city.name}</div>
+                    <div class="city-preview">
+                        <div class="river-preview ${city.river || ''}"></div>
+                    </div>
+                    <div class="city-stats">
+                        <span class="unlock-target ${city.highscore >= city.target ? 'achieved' : ''}">
+                            🎯 ${city.target}
+                        </span>
+                        <span class="highscore">🏆 ${city.highscore || '-'}</span>
+                    </div>
+                    <div class="stars">${stars}</div>
+                `;
+                
+                if (city.unlocked) {
+                    card.onclick = () => selectCity(city);
+                }
+                
+                grid.appendChild(card);
+            });
+        }
+        
+        // Screen navigation
+        function showMainMenu() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('main-menu').classList.add('active');
+        }
+        
+        function showCitySelect() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('city-select').classList.add('active');
+            generateCityCards();
+        }
+        
+        function selectCity(city) {
+            selectedCity = city;
+            document.getElementById('selected-city-name').textContent = city.name;
+            
+            // Set city description based on features
+            const descriptions = {
+                london: 'Cross the Thames and connect historic London',
+                paris: 'Navigate the Seine and its islands',
+                newyork: 'Bridge the Hudson and East Rivers to unite the boroughs',
+                berlin: 'Limited bridges challenge your planning across the Spree'
+            };
+            
+            document.getElementById('city-description').textContent = 
+                descriptions[city.id] || 'Build an efficient metro network';
+            
+            // Show mode selection
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('mode-select').classList.add('active');
+            
+            // Update mode availability
+            updateModeAvailability(city);
+        }
+        
+        function updateModeAvailability(city) {
+            const extremeUnlocked = city.highscore >= 1500;
+            const creativeUnlocked = cities.filter(c => c.stars >= 3).length >= 10;
+            
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                if (tab.textContent === 'EXTREME') {
+                    tab.classList.toggle('locked', !extremeUnlocked);
+                } else if (tab.textContent === 'CREATIVE') {
+                    tab.classList.toggle('locked', !creativeUnlocked);
+                }
+            });
+        }
+        
+        function selectMode(mode) {
+            selectedMode = mode;
+            document.querySelectorAll('.mode-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update mode details
+            const modeDetails = {
+                normal: {
+                    title: 'NORMAL MODE',
+                    description: 'Build an efficient network for a rapidly growing city. Keep stations from overcrowding to continue. Earn upgrades each week to expand your network.',
+                    objectives: [
+                        { icon: '🎯', text: `Transport ${selectedCity.target} passengers` },
+                        { icon: '⭐', text: 'Unlock next city' },
+                        { icon: '🏆', text: `Beat highscore: ${selectedCity.highscore || 0}` }
+                    ]
+                },
+                endless: {
+                    title: 'ENDLESS MODE',
+                    description: 'No overcrowding game over. Upgrades based on efficiency instead of time. Perfect for relaxed play and experimentation.',
+                    objectives: [
+                        { icon: '∞', text: 'Play without time pressure' },
+                        { icon: '🎯', text: 'Maximize efficiency' },
+                        { icon: '📊', text: 'Beat your best score' }
+                    ]
+                },
+                extreme: {
+                    title: 'EXTREME MODE',
+                    description: 'The ultimate challenge. No changes allowed once placed. Every decision is permanent. Plan carefully!',
+                    objectives: [
+                        { icon: '⚡', text: 'No modifications allowed' },
+                        { icon: '🎯', text: 'Reach 2000 passengers' },
+                        { icon: '💀', text: 'One mistake = game over' }
+                    ]
+                },
+                creative: {
+                    title: 'CREATIVE MODE',
+                    description: 'Unlimited resources. Design your dream metro network. No pressure, just creativity.',
+                    objectives: [
+                        { icon: '✏️', text: 'Unlimited resources' },
+                        { icon: '🎨', text: 'Design freely' },
+                        { icon: '📸', text: 'Share your creation' }
+                    ]
+                }
+            };
+            
+            const details = modeDetails[mode];
+            document.getElementById('mode-title').textContent = details.title;
+            document.getElementById('mode-description').textContent = details.description;
+            
+            // Update objectives
+            const objectivesHtml = details.objectives.map(obj => `
+                <div class="objective">
+                    <span class="objective-icon">${obj.icon}</span>
+                    <span class="objective-text">${obj.text}</span>
+                </div>
+            `).join('');
+            
+            document.querySelector('.mode-objectives').innerHTML = objectivesHtml;
+        }
+        
+        function showDailyChallenge() {
+            alert('Daily Challenge: London Rush Hour\nTransport 1000 passengers in 5 minutes!');
+        }
+        
+        function showAchievements() {
+            alert('Achievements coming soon!');
+        }
+        
+        function showSettings() {
+            alert('Settings coming soon!');
+        }
+        
+        function startGame() {
+            if (!selectedCity) return;
+            
+            // Hide menu screens
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            
+            // Show game canvas
+            document.getElementById('gameCanvas').style.display = 'block';
+            document.getElementById('game-ui').style.display = 'block';
+            
+            // Initialize game with selected city and mode
+            if (typeof MiniMetro !== 'undefined') {
+                const game = new MiniMetro();
+                game.initializeCity(selectedCity.id, selectedMode);
+                window.currentGame = game;
+            } else {
+                console.log(`Starting game: ${selectedCity.name} - ${selectedMode} mode`);
+            }
+        }
+        
+        function exitToMenu() {
+            // Save progress if game is running
+            if (window.currentGame) {
+                // Update highscore
+                const city = cities.find(c => c.id === selectedCity.id);
+                if (city && window.currentGame.score > city.highscore) {
+                    city.highscore = window.currentGame.score;
+                    
+                    // Calculate stars
+                    if (city.highscore >= city.target * 2) city.stars = 3;
+                    else if (city.highscore >= city.target * 1.5) city.stars = 2;
+                    else if (city.highscore >= city.target) city.stars = 1;
+                    
+                    saveProgress();
+                }
+            }
+            
+            // Return to city selection
+            document.getElementById('gameCanvas').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'none';
+            showCitySelect();
+        }
+        
+        // Initialize
+        loadProgress();
+    </script>
+    <script src="game-realistic.js"></script>
+</body>
+</html>

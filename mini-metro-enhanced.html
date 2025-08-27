@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Metro</title>
+    <link rel="stylesheet" href="mini-metro-enhanced.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-animation">
+            <div class="metro-line line-1"></div>
+            <div class="metro-line line-2"></div>
+            <div class="metro-line line-3"></div>
+            <div class="station-dot dot-1"></div>
+            <div class="station-dot dot-2"></div>
+            <div class="station-dot dot-3"></div>
+        </div>
+        <div class="loading-text">LOADING</div>
+    </div>
+
+    <!-- Animated Background -->
+    <div class="animated-background">
+        <svg class="metro-lines-bg" width="100%" height="100%">
+            <defs>
+                <linearGradient id="lineGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#DD2515;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#DD2515;stop-opacity:0" />
+                </linearGradient>
+                <linearGradient id="lineGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#2581C4;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#2581C4;stop-opacity:0" />
+                </linearGradient>
+                <linearGradient id="lineGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#35AB52;stop-opacity:0.3" />
+                    <stop offset="100%" style="stop-color:#35AB52;stop-opacity:0" />
+                </linearGradient>
+            </defs>
+            <path class="bg-line bg-line-1" d="M0,100 Q200,150 400,100 T800,150" />
+            <path class="bg-line bg-line-2" d="M100,0 Q150,200 100,400 T150,800" />
+            <path class="bg-line bg-line-3" d="M800,200 Q600,250 400,200 T0,250" />
+            <circle class="bg-station" cx="200" cy="125" r="8" />
+            <circle class="bg-station" cx="600" cy="125" r="8" />
+            <circle class="bg-station" cx="125" cy="300" r="8" />
+        </svg>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen active">
+        <div class="menu-container">
+            <div class="logo-section">
+                <h1 class="game-logo">
+                    <span class="logo-mini">MINI</span>
+                    <span class="logo-metro">METRO</span>
+                </h1>
+                <div class="logo-underline"></div>
+                <p class="game-tagline">Mind the Gap</p>
+            </div>
+            
+            <nav class="menu-nav">
+                <button class="menu-item" onclick="showCitySelect()">
+                    <span class="menu-icon">▶</span>
+                    <span class="menu-text">PLAY</span>
+                    <span class="menu-arrow">→</span>
+                </button>
+                <button class="menu-item daily" onclick="showDailyChallenge()">
+                    <span class="menu-icon">📅</span>
+                    <span class="menu-text">DAILY CHALLENGE</span>
+                    <span class="menu-badge">NEW</span>
+                </button>
+                <button class="menu-item" onclick="showAchievements()">
+                    <span class="menu-icon">🏆</span>
+                    <span class="menu-text">ACHIEVEMENTS</span>
+                    <span class="menu-progress">67%</span>
+                </button>
+                <button class="menu-item" onclick="showLeaderboard()">
+                    <span class="menu-icon">📊</span>
+                    <span class="menu-text">LEADERBOARD</span>
+                    <span class="menu-rank">#142</span>
+                </button>
+                <button class="menu-item" onclick="showSettings()">
+                    <span class="menu-icon">⚙</span>
+                    <span class="menu-text">SETTINGS</span>
+                </button>
+            </nav>
+            
+            <div class="menu-footer">
+                <div class="social-links">
+                    <button class="social-btn">𝕏</button>
+                    <button class="social-btn">📧</button>
+                    <button class="social-btn">ℹ</button>
+                </div>
+                <div class="version">v2.4.1</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- City Selection with World Map -->
+    <div id="city-select" class="screen">
+        <header class="screen-header">
+            <button class="back-btn" onclick="showMainMenu()">
+                <span class="back-icon">←</span>
+                <span class="back-text">BACK</span>
+            </button>
+            <div class="header-info">
+                <h2 class="screen-title">SELECT DESTINATION</h2>
+                <div class="unlock-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 35%"></div>
+                    </div>
+                    <span class="progress-text">12 of 34 Cities Unlocked</span>
+                </div>
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setView('map')">🗺 Map</button>
+                <button class="view-btn" onclick="setView('grid')">⊞ Grid</button>
+            </div>
+        </header>
+
+        <!-- World Map View -->
+        <div id="world-map-view" class="city-view active">
+            <div class="world-map-container">
+                <svg class="world-map" viewBox="0 0 1200 600">
+                    <!-- Simplified world map -->
+                    <g class="continents">
+                        <!-- Europe -->
+                        <path class="continent europe" d="M550,200 L600,180 L650,190 L680,220 L650,250 L600,240 L550,230 Z" />
+                        <!-- North America -->
+                        <path class="continent north-america" d="M200,180 L350,150 L380,200 L350,280 L250,300 L180,250 L200,180 Z" />
+                        <!-- Asia -->
+                        <path class="continent asia" d="M700,150 L850,140 L900,200 L880,280 L750,290 L700,240 L700,150 Z" />
+                        <!-- South America -->
+                        <path class="continent south-america" d="M280,350 L320,340 L350,400 L340,480 L300,490 L270,450 L280,350 Z" />
+                        <!-- Africa -->
+                        <path class="continent africa" d="M550,280 L600,270 L620,350 L600,420 L560,430 L540,380 L550,280 Z" />
+                        <!-- Oceania -->
+                        <path class="continent oceania" d="M850,400 L900,390 L920,420 L900,450 L860,460 L840,430 L850,400 Z" />
+                    </g>
+                    
+                    <!-- City connections -->
+                    <g class="connections"></g>
+                    
+                    <!-- City markers -->
+                    <g class="city-markers"></g>
+                </svg>
+            </div>
+            
+            <!-- City Detail Panel -->
+            <div id="city-detail" class="city-detail-panel">
+                <div class="city-detail-header">
+                    <h3 class="city-name">SELECT A CITY</h3>
+                    <span class="city-difficulty">●●●○○</span>
+                </div>
+                <div class="city-preview">
+                    <canvas id="city-preview-canvas" width="300" height="150"></canvas>
+                </div>
+                <div class="city-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">PASSENGERS</span>
+                        <span class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">HIGHSCORE</span>
+                        <span class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">WORLD RANK</span>
+                        <span class="stat-value">-</span>
+                    </div>
+                </div>
+                <div class="city-leaderboard">
+                    <h4>TOP PLAYERS</h4>
+                    <div class="leaderboard-list"></div>
+                </div>
+                <button class="play-city-btn" disabled>SELECT CITY FIRST</button>
+            </div>
+        </div>
+
+        <!-- Grid View -->
+        <div id="grid-view" class="city-view">
+            <div class="filter-bar">
+                <button class="filter-btn active" data-filter="all">ALL</button>
+                <button class="filter-btn" data-filter="unlocked">UNLOCKED</button>
+                <button class="filter-btn" data-filter="locked">LOCKED</button>
+                <button class="filter-btn" data-filter="completed">COMPLETED</button>
+            </div>
+            <div class="cities-grid" id="cities-grid"></div>
+        </div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="mode-select" class="screen">
+        <header class="screen-header">
+            <button class="back-btn" onclick="showCitySelect()">
+                <span class="back-icon">←</span>
+                <span class="back-text">BACK</span>
+            </button>
+            <div class="selected-city-info">
+                <h2 id="selected-city-title">LONDON</h2>
+                <p id="selected-city-desc">Cross the Thames</p>
+            </div>
+        </header>
+
+        <div class="modes-container">
+            <div class="mode-card" data-mode="normal">
+                <div class="mode-icon">🎯</div>
+                <h3 class="mode-name">NORMAL</h3>
+                <p class="mode-description">Build an efficient network for a rapidly growing city</p>
+                <div class="mode-objectives">
+                    <div class="objective">✓ Weekly upgrades</div>
+                    <div class="objective">✓ Overcrowding challenge</div>
+                    <div class="objective">✓ Unlock new cities</div>
+                </div>
+                <button class="select-mode-btn" onclick="startGame('normal')">PLAY NORMAL</button>
+            </div>
+
+            <div class="mode-card" data-mode="endless">
+                <div class="mode-icon">∞</div>
+                <h3 class="mode-name">ENDLESS</h3>
+                <p class="mode-description">Relax and build without pressure</p>
+                <div class="mode-objectives">
+                    <div class="objective">✓ No game over</div>
+                    <div class="objective">✓ Efficiency rewards</div>
+                    <div class="objective">✓ Zen experience</div>
+                </div>
+                <button class="select-mode-btn" onclick="startGame('endless')">PLAY ENDLESS</button>
+            </div>
+
+            <div class="mode-card locked" data-mode="extreme">
+                <div class="mode-icon">⚡</div>
+                <h3 class="mode-name">EXTREME</h3>
+                <p class="mode-description">No modifications allowed</p>
+                <div class="mode-objectives">
+                    <div class="objective">✓ Permanent decisions</div>
+                    <div class="objective">✓ Ultimate challenge</div>
+                    <div class="objective">✓ 2000+ target</div>
+                </div>
+                <div class="unlock-requirement">Unlock: 1500 passengers</div>
+                <button class="select-mode-btn" disabled>LOCKED</button>
+            </div>
+
+            <div class="mode-card locked" data-mode="creative">
+                <div class="mode-icon">🎨</div>
+                <h3 class="mode-name">CREATIVE</h3>
+                <p class="mode-description">Design your dream network</p>
+                <div class="mode-objectives">
+                    <div class="objective">✓ Unlimited resources</div>
+                    <div class="objective">✓ No constraints</div>
+                    <div class="objective">✓ Share designs</div>
+                </div>
+                <div class="unlock-requirement">Unlock: 10 cities with ★★★</div>
+                <button class="select-mode-btn" disabled>LOCKED</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements -->
+    <div id="achievements" class="screen">
+        <header class="screen-header">
+            <button class="back-btn" onclick="showMainMenu()">
+                <span class="back-icon">←</span>
+                <span class="back-text">BACK</span>
+            </button>
+            <h2 class="screen-title">ACHIEVEMENTS</h2>
+            <div class="achievement-stats">
+                <span>24 / 48 Unlocked</span>
+                <span>12,450 Points</span>
+            </div>
+        </header>
+        <div class="achievements-container"></div>
+    </div>
+
+    <!-- Game Canvas (hidden initially) -->
+    <canvas id="gameCanvas" style="display: none;"></canvas>
+    
+    <!-- Game UI Overlay -->
+    <div id="game-ui" style="display: none;">
+        <button class="game-menu-btn" onclick="exitToMenu()">☰</button>
+    </div>
+
+    <!-- Sound Manager -->
+    <audio id="click-sound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLYiTYIG2m98OScTgwOUajk4LNgGwY5ktXyxnkrBSp3x/DekEAKFV+16+uoVRQKRqDf8bxrIAUsfM/w14kyCBtpvOzlnEwHDFGo4+SzWREGOpDW8sh6LC4EMnzI8N6HOAoWYLfn5KVQCwxPrOLwtGAcBjiS1/PMeS0GI3fH8N+RQAoUXrTp66hVFApGnt/yvmwhBSuBzvLZiTYIHGi98eCcShAMUKjj4LNgGwU4k9T1w3kpBSuAzvDeiTYIHWq+8OGaTA0PVKzj37JfGAU7k9XwxHkpBCh+zPLaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0OVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCp9y/HZijYIHmm98eCdTgwMUqni5LVfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5rJfGAU7k9Xwx3kpBCh+zPDaiTYIHWq+8OKdTA0PVKns5bJfGAU7k9Xwx3kpBCh+zPDaiTUIHWq+8OKdTA0PVKns5rJfGAU=" type="audio/wav">
+    </audio>
+
+    <script src="city-maps.js"></script>
+    <script src="mini-metro-enhanced.js"></script>
+</body>
+</html>
